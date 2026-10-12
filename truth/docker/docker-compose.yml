@@ -1,0 +1,54 @@
+# Truth: the client and the in-memory stand-in behind it.
+#
+#     docker compose up --build          # then open http://<this machine>:8090
+#
+# Two containers and nothing else. The stand-in answers exactly the endpoints the real assumptions API
+# offers, in exactly the shapes it answers them in, and holds its register in memory - so it is the same on
+# every run and nothing written through it survives a restart. That is what makes it useful: a register that
+# is always the same, for working on the client without needing the real service up.
+#
+# The client is published on port 8090 of every interface and reaches the stand-in through that same port,
+# because nginx forwards /api on to it. There is no second address to hand out.
+#
+# To put this client in front of the real API instead, use the file beside this one:
+#
+#     TRUTH_API_URL=http://<where your API answers>/ \
+#         docker compose -f docker-compose.frontend.yml up --build
+name: truth-mock
+
+services:
+  truth-api:
+    build:
+      context: ../..
+      dockerfile: truth/Dockerfile.mock
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/industry?offset=0&limit=1')"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
+    networks:
+      - truth
+
+  web:
+    build:
+      context: ../..
+      dockerfile: truth/frontend/Dockerfile
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_DEFAULT_CREATOR: ${TRUTH_DEFAULT_CREATOR:-}
+    restart: unless-stopped
+    environment:
+      TRUTH_API_URL: http://truth-api:8000/
+    ports:
+      - "${TRUTH_PORT:-8090}:80"
+    depends_on:
+      truth-api:
+        condition: service_healthy
+    networks:
+      - truth
+
+networks:
+  truth:
+    driver: bridge

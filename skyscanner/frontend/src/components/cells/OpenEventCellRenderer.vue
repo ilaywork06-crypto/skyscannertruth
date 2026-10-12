@@ -1,0 +1,113 @@
+<template>
+  <!--
+    The way into the event page, at the end of every row.
+
+    The number and the brief have always led there, but nothing on a row said so, and a reader who never
+    happened to click one of those two cells never found the page at all. This is the same link written as
+    the arrow every list uses to mean "there is more of this behind here" - a real link, so it can be opened
+    in a new tab and read by anything that understands a document.
+  -->
+  <a
+    class="open-event"
+    :href="href"
+    :aria-label="t('event.open')"
+    @click="open"
+  >
+    <v-icon
+      class="open-event__icon"
+      size="small"
+      :icon="direction === 'rtl' ? 'mdi-chevron-left' : 'mdi-chevron-right'"
+    />
+    <UiTooltip>{{ t('event.open') }}</UiTooltip>
+  </a>
+</template>
+
+<script lang="ts">
+import type { ICellRendererParams } from 'ag-grid-community'
+import { UiTooltip } from '@truth-platform/core-ui'
+import type { GridRow } from '@/models/grid'
+
+interface Props {
+  params: ICellRendererParams<GridRow>
+}
+</script>
+
+<script setup lang="ts">
+import { computed } from 'vue'
+
+import { readContext, readRowId, useLanguage } from '@truth-platform/core-ui'
+
+const { t, direction } = useLanguage()
+
+const props = defineProps<Props>()
+
+const href = computed<string>(() => `/events/${readRowId(props.params)}`)
+
+/**
+ * Route to the event inside the application, while leaving the browser its own handling of a modified
+ * click so that opening the event in a new tab keeps working.
+ */
+const open = (event: MouseEvent) => {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) {
+    return
+  }
+
+  event.preventDefault()
+  event.stopPropagation()
+  readContext(props.params).openRow(readRowId(props.params))
+}
+</script>
+
+<!-- Unscoped for the same reason every renderer of this table is: the grid mounts it outside the tree. -->
+<style>
+/*
+ * The whole cell is the way in, not only the arrow drawn in the middle of it: a press anywhere on the end of
+ * the row opens the event. The grid wraps the renderer in boxes as small as the arrow, so they are stretched
+ * to the cell, and the cell gives up the padding that would otherwise leave a ring around the link that fell
+ * through to the row and opened its panel instead.
+ */
+.ag-cell[col-id='open'] {
+  padding: 0;
+}
+
+.ag-cell[col-id='open'] .ag-cell-wrapper,
+.ag-cell[col-id='open'] .ag-cell-value {
+  display: flex;
+  flex: 1 1 auto;
+  align-self: stretch;
+  inline-size: 100%;
+  block-size: 100%;
+  min-inline-size: 0;
+}
+
+.open-event {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
+  block-size: 100%;
+  inline-size: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+/*
+ * The arrow is quiet until the row is pointed at: a column of bright chevrons down the side of the table
+ * would shout louder than anything the rows actually say.
+ */
+.open-event__icon {
+  opacity: 0.4;
+  transition: opacity 0.12s ease-in-out, transform 0.12s ease-in-out;
+}
+
+.sky-row:hover .open-event__icon {
+  opacity: 0.85;
+}
+
+.open-event:hover .open-event__icon,
+.open-event:focus-visible .open-event__icon {
+  opacity: 1;
+  color: rgb(var(--v-theme-primary));
+  transform: translateX(0.125rem);
+}
+</style>

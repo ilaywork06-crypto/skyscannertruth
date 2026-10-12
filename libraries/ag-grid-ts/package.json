@@ -1,0 +1,25 @@
+{
+  "name": "@truth-platform/ag-grid-ts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "type-check": "tsc --noEmit -p tsconfig.json",
+    "test": "node tests/nesting.test.mjs"
+  },
+  "peerDependencies": {
+    "ag-grid-community": "^33.0.0",
+    "vue": "^3.5.0"
+  },
+  "devDependencies": {
+    "typescript": "~5.6.3",
+    "acorn": "^8.14.0",
+    "esbuild": "^0.24.0",
+    "postcss": "^8.4.49"
+  }
+}

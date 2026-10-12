@@ -1,0 +1,84 @@
+/**
+ * The payloads of the dynamic field declarations that shape the create wizard and the generated columns.
+ */
+
+import type { FieldScope, FieldType, JsonValue } from './common'
+
+interface FieldConstraint {
+  name: string
+  value: JsonValue
+  message: string | null
+}
+
+type DependencyOperator = 'has_value' | 'is_empty' | 'equals' | 'one_of' | 'not_equals'
+
+/**
+ * A condition on another field that decides whether this one is asked for at all.
+ *
+ * The field it points at belongs to the same form, or, for a field of an entity, to the event that entity
+ * hangs under - the only other form whose values are known while the entity is filled in.
+ */
+interface FieldDependency {
+  field: string
+  operator: DependencyOperator
+  values: JsonValue[]
+}
+
+interface FieldMetadata {
+  allowed_file_types: string[]
+  /**
+   * What the field is called when the interface is read in Hebrew, or nothing when nobody said.
+   *
+   * A declaration that carries none keeps the name it was declared under in both languages. That name is
+   * the vocabulary of whoever declared it rather than a word this library ships, so there is nowhere else a
+   * Hebrew one could honestly come from - and inventing one would be worse than leaving it alone.
+   */
+  name_he: string | null
+  options: string[]
+  unit: string | null
+  description: string | null
+  placeholder: string | null
+  group: string | null
+}
+
+interface FieldDefinition {
+  id: string
+  name: string
+  key: string
+  type: FieldType
+  array: boolean
+  default: JsonValue
+  required: boolean
+  scope: FieldScope
+  industry: string | null
+  entity_type: string | null
+  /** Whether the field describes the object itself or the additional data block underneath it. */
+  additional: boolean
+  metadata: FieldMetadata
+  constraints: FieldConstraint[]
+  depends_on: FieldDependency[]
+  filterable: boolean
+  sortable: boolean
+  editable: boolean
+  visible: boolean
+  order: number
+  /** Whether nobody declared the field and it was read off the stored documents instead. */
+  discovered: boolean
+  created_at: string
+  updated_at: string | null
+  created_by: string | null
+}
+
+interface FieldValue {
+  key: string
+  value: JsonValue
+}
+
+export type {
+  DependencyOperator,
+  FieldConstraint,
+  FieldDefinition,
+  FieldDependency,
+  FieldMetadata,
+  FieldValue,
+}

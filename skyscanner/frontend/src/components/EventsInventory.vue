@@ -1,0 +1,1110 @@
+<template>
+  <div
+    class="inventory"
+    :class="{ 'inventory--zoomed': fullscreen }"
+  >
+    <EventsToolbar
+      :search="controller.search.value"
+      :parse-state="parseState"
+      :sort-key="sortKey"
+      :sort-direction="sortDirection"
+      :columns="columns"
+      :visible-columns="visibleColumns"
+      :templates="templates"
+      :active-template="activeTemplate"
+      :selected-count="selectedIds.length"
+      :archiving="archiving"
+      :fullscreen="fullscreen"
+      :field-filter-count="fieldFilters.length"
+      @update:search="onSearch"
+      @update:parse-state="onParseState"
+      @update:sort="onSort"
+      @toggle-column="onToggleColumn"
+      @restore-view="onRestoreView"
+      @apply-template="onApplyTemplate"
+      @save-template="onOpenSaveTemplate"
+      @export="onExport"
+      @download-files="onDownloadFiles"
+      @export-bundle="onExportBundle"
+      @import="importDialog = true"
+      @select-all="onSelectAll"
+      @compare="openComparison('selected')"
+      @create="createDialog = true"
+      @toggle-fullscreen="fullscreen = !fullscreen"
+      @filter-fields="openFieldFilter"
+    />
+
+    <!--
+      The few vocabularies a reader narrows by every day, offered as pills rather than as a filter menu to be
+      found inside a column header. Every pick is written into the filter of its own column, so it appears as
+      a chip below, is lifted from there, and is saved with the view like any other restriction. The industry
+      is not among them: the tabs above the table are the filter by industry.
+    -->
+    <QuickFilters
+      :columns="columns"
+      :filters="controller.filterConditions.value"
+      @update="onQuickFilter"
+    />
+
+    <ActiveFilters
+      :search="controller.search.value"
+      :scope="parseScope"
+      :filters="allFilters"
+      :columns="columns"
+      :field-labels="fieldLabels"
+      @remove="onRemoveFilter"
+      @clear="onClearFilters"
+    />
+
+    <ExpandedRows
+      :expanded-ids="controller.expandedIds.value"
+      :rows="controller.rows.value"
+      @collapse="controller.toggleExpanded"
+      @collapse-all="controller.collapseAll"
+      @reveal="onRevealRow"
+      @compare="openComparison('expanded')"
+    />
+
+    <EventsGrid
+      ref="grid"
+      :configuration="controller.configuration.value"
+      :rows="controller.displayedRows.value"
+      :source-rows="controller.rows.value"
+      :loading="controller.loading.value"
+      :expanded-ids="controller.expandedIds.value"
+      :selected-ids="selectedIds"
+      :taxonomy="taxonomy"
+      :visible-columns="visibleColumns"
+      :search="controller.search.value"
+      :pinned="fullscreen"
+      @toggle-expanded="controller.toggleExpanded"
+      @update:selected="onSelectionChanged"
+      @open-event="onOpenEvent"
+      @open-artifact="onOpenArtifact"
+      @download="onDownload"
+      @models-changed="onModelsChanged"
+    />
+
+    <FileViewerDialog
+      v-model="viewerDialog"
+      :artifact="viewedArtifact"
+      @download="onDownload"
+    />
+
+    <PaginationBar
+      :page="controller.page.value"
+      :page-size="controller.pageSize.value"
+      :page-count="controller.pageCount.value"
+      :total="controller.total.value"
+      @update:page="controller.goToPage"
+      @update:page-size="controller.setPageSize"
+    />
+
+    <CreateEventDialog
+      v-model="createDialog"
+      :default-industry="singleIndustry"
+      @created="onCreated"
+    />
+
+    <FieldFilterDialog
+      v-model="filterDialog"
+      :event-columns="columns"
+      :entity-columns="entityColumns"
+      @apply="onApplyFieldFilter"
+    />
+
+    <CompareEventsDialog
+      v-model="compareDialog"
+      :rows="comparedRows"
+      :columns="columns"
+      :taxonomy="taxonomy"
+      @remove="onLeaveComparison"
+      @open="onOpenArtifact"
+      @download="onDownload"
+    />
+
+    <ImportBundleDialog
+      v-model="importDialog"
+      @restored="onRestored"
+    />
+
+    <v-dialog
+      v-model="templateDialog"
+      max-width="28rem"
+      @update:model-value="onTemplateDialogToggle"
+    >
+      <v-card>
+        <v-card-title>{{ t('view.saveTitle') }}</v-card-title>
+        <v-card-text class="inventory__dialog">
+          <v-text-field
+            v-model="templateName"
+            :label="t('view.name')"
+          />
+          <v-text-field
+            v-model="templateDescription"
+            :label="t('view.description')"
+          />
+          <v-checkbox
+            v-model="templateShared"
+            :label="t('view.share')"
+            hide-details
+          />
+          <p class="inventory__dialog-hint">
+            {{
+              templateShared
+                ? t('view.sharedNote')
+                : t('view.privateNote')
+            }}
+          </p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn
+            variant="text"
+            @click="onCancelSaveTemplate"
+          >
+            {{ t('common.cancel') }}
+          </v-btn>
+          <v-btn
+            color="primary"
+            :disabled="templateName.trim().length === 0"
+            @click="onSaveTemplate"
+          >
+            {{ t('common.save') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!--
+      Loading a template replaces the whole view, and the columns, ordering and filters the user arranged by
+      hand are nowhere else. Rather than dropping them without a word, the switch is named first and the view
+      that is about to be lost can be kept as a template of its own.
+    -->
+    <v-dialog
+      v-model="switchDialog"
+      max-width="32rem"
+    >
+      <v-card>
+        <v-card-title>{{ t('view.switchTitle') }}</v-card-title>
+        <v-card-text>
+          <p>{{ t('view.switchBody', { name: pendingTemplateName }) }}</p>
+        </v-card-text>
+        <!--
+          Three answers to one question, and the longest of them is a whole sentence. The row is laid out to
+          wrap rather than to squeeze, because a card of a fixed width and three buttons that refuse to shrink
+          used to push the first of them straight off the left edge - it read "CEL".
+        -->
+        <v-card-actions class="inventory__answers">
+          <v-btn
+            class="inventory__answer"
+            variant="text"
+            @click="onCancelSwitch"
+          >
+            {{ t('common.cancel') }}
+          </v-btn>
+          <v-btn
+            class="inventory__answer"
+            variant="text"
+            @click="onSaveBeforeSwitch"
+          >
+            {{ t('view.saveFirst') }}
+          </v-btn>
+          <v-btn
+            class="inventory__answer"
+            color="primary"
+            @click="onConfirmSwitch"
+          >
+            {{ t('view.switchAnyway') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <!--
+      Going back to the generated table throws away whatever the user arranged since, exactly as loading a
+      template does, so it is asked about in the same words and offers the same way out: keep the view under
+      a name of its own first, or let it go.
+    -->
+    <v-dialog
+      v-model="restoreDialog"
+      max-width="32rem"
+    >
+      <v-card>
+        <v-card-title>{{ t('view.restoreTitle') }}</v-card-title>
+        <v-card-text>
+          <p>
+            {{ restoreDescription }}
+          </p>
+        </v-card-text>
+        <v-card-actions class="inventory__answers">
+          <v-btn
+            class="inventory__answer"
+            variant="text"
+            @click="restoreDialog = false"
+          >
+            {{ t('common.cancel') }}
+          </v-btn>
+          <v-btn
+            class="inventory__answer"
+            variant="text"
+            @click="onSaveBeforeRestore"
+          >
+            {{ t('view.saveFirst') }}
+          </v-btn>
+          <v-btn
+            class="inventory__answer"
+            color="primary"
+            @click="onConfirmRestore"
+          >
+            {{ t('view.discardAndRestore') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </div>
+</template>
+
+<script lang="ts">
+import type { FilterModel, SortModelItem } from 'ag-grid-community'
+import type { FilterChip, ScopeFilter, TaxonomyItem } from '@truth-platform/core-ui'
+import type { GridColumnLayout } from '@/components/EventsGrid.vue'
+import type { ExportChoice } from '@/components/EventsToolbar.vue'
+import type { AppliedFilter } from '@/components/FieldFilterDialog.vue'
+import type { QuickFilterChoice } from '@truth-platform/core-ui'
+import type { Artifact, ParseState } from '@/models/common'
+import type { GeneratedColumn, GridRow } from '@/models/grid'
+import type { Industry } from '@/models/industry'
+import type { FilterCondition, SortDirection, SortSpecification } from '@/models/query'
+import type { TableTemplate, TemplateColumn } from '@truth-platform/core-ui'
+
+interface Props {
+  /** The industries picked in the tabs; none picked is every industry. */
+  industries: string[]
+}
+
+const SEARCH_DEBOUNCE_MS = 350
+
+/** The scope every template of the inventory is filed under, which is what the remembered choice is keyed by. */
+const TEMPLATE_SCOPE = 'event'
+
+/** The key that leaves the zoomed table, which is the way out every full screen view of a browser offers. */
+const ESCAPE_KEY = 'Escape'
+</script>
+
+<script setup lang="ts">
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
+
+import CompareEventsDialog from '@/components/CompareEventsDialog.vue'
+import CreateEventDialog from '@/components/CreateEventDialog.vue'
+import EventsGrid from '@/components/EventsGrid.vue'
+import EventsToolbar from '@/components/EventsToolbar.vue'
+import FieldFilterDialog from '@/components/FieldFilterDialog.vue'
+import FileViewerDialog from '@/components/FileViewerDialog.vue'
+import ExpandedRows from '@/components/inventory/ExpandedRows.vue'
+import { buildExportRequest, findRowById, useEventsGrid, type EventsGridInput } from '@/composables/useEventsGrid'
+import { readEntityColumns } from '@/requests/grid'
+import {
+  ActiveFilters,
+  localiseColumns,
+  useLanguage,
+} from '@truth-platform/core-ui'
+import { PaginationBar } from '@truth-platform/core-ui'
+import { QuickFilters } from '@truth-platform/core-ui'
+import { useSnackbar } from '@truth-platform/core-ui'
+import { useIndustries } from '@/composables/useIndustries'
+import { downloadArtifact } from '@/requests/storage'
+import ImportBundleDialog from '@/components/ImportBundleDialog.vue'
+import {
+  createTemplate,
+  downloadEventBundle,
+  downloadEventFiles,
+  exportEvents,
+  listTemplates,
+} from '@/requests/templates'
+import { readActiveTemplate, writeActiveTemplate } from '@truth-platform/core-ui'
+import { downloadBlob } from '@truth-platform/core-ui'
+
+const props = defineProps<Props>()
+
+const router = useRouter()
+const { industries: industryList } = useIndustries()
+const { notify, reportError } = useSnackbar()
+const { t, language } = useLanguage()
+
+/* Conditions no column of the table carries - a field of the entities, or one picked in the filter dialog. */
+const fieldFilters = ref<FilterCondition[]>([])
+const fieldLabels = ref<Record<string, string>>({})
+
+const gridInput: EventsGridInput = {
+  industries: computed<string[]>(() => props.industries),
+  fieldFilters,
+}
+const controller = useEventsGrid(gridInput)
+
+/*
+ * A saved view and the create form belong to one industry, so they follow the tabs only while exactly one is
+ * picked; with several, or none, they belong to the whole inventory.
+ */
+const singleIndustry = computed<string | null>(() => (props.industries.length === 1 ? props.industries[0] : null))
+
+const grid = ref<InstanceType<typeof EventsGrid> | null>(null)
+const templates = ref<TableTemplate[]>([])
+const visibleColumns = ref<string[]>([])
+const selectedIds = ref<string[]>([])
+const createDialog = ref<boolean>(false)
+const importDialog = ref<boolean>(false)
+const templateDialog = ref<boolean>(false)
+const switchDialog = ref<boolean>(false)
+const restoreDialog = ref<boolean>(false)
+const viewerDialog = ref<boolean>(false)
+const viewedArtifact = ref<Artifact | null>(null)
+const filterDialog = ref<boolean>(false)
+const compareDialog = ref<boolean>(false)
+
+/* Which events the comparison lays side by side: the ones open under their rows, or the ones ticked. */
+const compareSource = ref<'expanded' | 'selected'>('expanded')
+const entityColumns = ref<GeneratedColumn[]>([])
+const archiving = ref<boolean>(false)
+const fullscreen = ref<boolean>(false)
+const templateName = ref<string>('')
+const templateDescription = ref<string>('')
+const templateShared = ref<boolean>(false)
+
+/*
+ * The template that is waiting for an answer about the unsaved view, and the fingerprint of the view as it was
+ * last saved or loaded. A view that has no fingerprint yet - the table has not finished building itself - is
+ * treated as saved, because there is nothing the user arranged that could be lost.
+ */
+const pendingTemplate = ref<TableTemplate | null>(null)
+const savedFingerprint = ref<string | null>(null)
+
+/*
+ * The saved view the table is showing, remembered in this browser so that a user who works out of one view
+ * every day is not made to pick it again every morning. Nothing means the generated table.
+ */
+const activeTemplateId = ref<string | null>(null)
+
+/* Whether the pending answer is about restoring the default view rather than about loading a template. */
+const restoringToDefault = ref<boolean>(false)
+
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+const columns = computed<GeneratedColumn[]>(() => controller.configuration.value?.columns ?? [])
+const parseState = computed<ParseState>(() => controller.parseState.value as ParseState)
+
+/* The industries the chips of the table are drawn from - an icon and both names apiece. */
+const taxonomy = computed<TaxonomyItem[]>(() =>
+  industryList.value.map((industry: Industry) => ({
+    key: industry.key,
+    name: industry.name,
+    name_he: industry.name_he,
+    icon: industry.icon,
+    color: '',
+  })),
+)
+
+/* The restrictions the chips above the table name: the column filters, then the ones picked in the dialog. */
+const allFilters = computed<FilterCondition[]>(() => [...controller.filterConditions.value, ...fieldFilters.value])
+
+/* The events being compared, in the order they were opened or ticked. */
+const comparedRows = computed<GridRow[]>(() =>
+  (compareSource.value === 'selected' ? selectedIds.value : controller.expandedIds.value)
+    .map((rowId) => findRowById(controller.rows.value, rowId))
+    .filter((row): row is GridRow => row !== undefined),
+)
+
+/** What the parse toggle is currently narrowing the rows to, shown as a chip beside the column filters. */
+const parseScope = computed<ScopeFilter | null>(() => {
+  void language.value
+
+  if (parseState.value === 'all') {
+    return null
+  }
+
+  return {
+    field: t('toolbar.show'),
+    value: parseState.value === 'parsed' ? t('toolbar.parsed') : t('toolbar.notParsed'),
+  }
+})
+const sortKey = computed<string>(() => controller.sortSpecifications.value[0]?.key ?? 'created_at')
+const sortDirection = computed<SortDirection>(() => controller.sortSpecifications.value[0]?.direction ?? 'desc')
+const pendingTemplateName = computed<string>(() => pendingTemplate.value?.name ?? '')
+
+const activeTemplate = computed<TableTemplate | null>(
+  () => templates.value.find((template) => template.id === activeTemplateId.value) ?? null,
+)
+
+/* The ordering the generated table comes with, which is where restoring the default view puts it back. */
+const defaultSort = computed<SortSpecification[]>(() => controller.configuration.value?.defaultSort ?? [])
+
+const restoreDescription = computed<string>(() =>
+  activeTemplate.value === null ? t('view.unsaved') : t('view.changedSince', { name: activeTemplate.value.name }),
+)
+
+/**
+ * Read the presentation of the columns the way a template stores it, taken from the running table so that a
+ * column that was dragged, resized or pinned by hand is saved as it looks.
+ *
+ * A table that has not built itself yet has no state to read, and the generated configuration stands in for it.
+ */
+const readTemplateColumns = (): TemplateColumn[] => {
+  const declared = new Set(columns.value.map((column) => column.colId))
+  const layout = (grid.value?.readColumnLayout() ?? []).filter((column) => declared.has(column.colId))
+  const generated: GridColumnLayout[] = columns.value.map((column) => ({
+    colId: column.colId,
+    visible: visibleColumns.value.includes(column.colId),
+    width: column.width,
+    pinned: column.pinned,
+  }))
+  const source: GridColumnLayout[] = layout.length > 0 ? layout : generated
+
+  return source.map((column, index) => ({
+    key: column.colId,
+    visible: column.visible,
+    order: index,
+    width: column.width,
+    pinned: column.pinned,
+  }))
+}
+
+/**
+ * Take a fingerprint of the view as it stands, so switching template can tell whether anything would be lost.
+ *
+ * The widths are left out of it on purpose: a flexible column measures differently after the window is resized,
+ * and a resized window is not a change the user made to the view.
+ */
+const readViewFingerprint = (): string =>
+  JSON.stringify({
+    columns: readTemplateColumns().map((column) => ({
+      key: column.key,
+      visible: column.visible,
+      order: column.order,
+      pinned: column.pinned,
+    })),
+    sort: controller.sortSpecifications.value,
+    filters: allFilters.value,
+    search: controller.search.value,
+    parseState: controller.parseState.value,
+  })
+
+/**
+ * Record the view as saved, which is what every later comparison is made against.
+ */
+const rememberView = () => {
+  savedFingerprint.value = readViewFingerprint()
+}
+
+const load = async (): Promise<void> => {
+  entityColumns.value = []
+  await controller.refreshConfiguration()
+  visibleColumns.value = columns.value.filter((column) => !column.hide).map((column) => column.colId)
+  await controller.refreshRows()
+  await nextTick()
+  /* The generated ordering is told to the table as well, so the first filter that is typed does not lose it. */
+  grid.value?.applySort(controller.sortSpecifications.value)
+  rememberView()
+  try {
+    templates.value = await listTemplates(TEMPLATE_SCOPE, singleIndustry.value)
+  } catch (error) {
+    reportError(error)
+  }
+
+  await restoreRememberedTemplate()
+}
+
+/**
+ * Put the table back on the saved view it was last left showing.
+ *
+ * The choice is remembered rather than the view itself, so a template that was changed since is loaded as it
+ * stands now, and one that was deleted - or that belonged to an industry this table is not showing - simply
+ * leaves the table on the generated view and the stale memory of it is forgotten.
+ */
+const restoreRememberedTemplate = async (): Promise<void> => {
+  const remembered = readActiveTemplate(TEMPLATE_SCOPE, singleIndustry.value)
+  if (remembered === null) {
+    return
+  }
+
+  const template = templates.value.find((candidate) => candidate.id === remembered)
+  if (template === undefined) {
+    writeActiveTemplate(TEMPLATE_SCOPE, singleIndustry.value, null)
+
+    return
+  }
+
+  await applyTemplate(template)
+}
+
+const onSearch = (value: string) => {
+  controller.search.value = value
+  if (searchTimer !== null) {
+    clearTimeout(searchTimer)
+  }
+  searchTimer = setTimeout(() => {
+    void controller.goToPage(1)
+  }, SEARCH_DEBOUNCE_MS)
+}
+
+const onParseState = (value: ParseState) => {
+  controller.parseState.value = value
+  void controller.goToPage(1)
+}
+
+const onSort = (specification: SortSpecification) => {
+  controller.sortSpecifications.value = [specification]
+  grid.value?.applySort([specification])
+  void controller.goToPage(1)
+}
+
+const onToggleColumn = (colId: string) => {
+  visibleColumns.value = visibleColumns.value.includes(colId)
+    ? visibleColumns.value.filter((candidate) => candidate !== colId)
+    : [...visibleColumns.value, colId]
+}
+
+const onModelsChanged = (sortModel: SortModelItem[], filterModel: FilterModel) => {
+  void controller.applyGridModels(sortModel, filterModel)
+}
+
+/**
+ * Lift a single restriction. A column filter is dropped inside the grid so that its own header input
+ * empties too and the reload follows from the grid, while the toolbar restrictions are reset here.
+ */
+const onRemoveFilter = (chip: FilterChip) => {
+  if (chip.kind === 'column') {
+    const fromGrid = controller.filterConditions.value.length
+    if (chip.index < fromGrid) {
+      grid.value?.clearColumnFilter(chip.colId)
+
+      return
+    }
+
+    fieldFilters.value = fieldFilters.value.filter((_, index) => index !== chip.index - fromGrid)
+    void controller.goToPage(1)
+
+    return
+  }
+
+  if (chip.kind === 'search') {
+    onSearch('')
+
+    return
+  }
+
+  onParseState('all')
+}
+
+const onClearFilters = () => {
+  const hadColumnFilters = controller.filterConditions.value.length > 0
+  controller.search.value = ''
+  controller.parseState.value = 'all'
+  fieldFilters.value = []
+
+  /*
+   * Emptying the grid filters raises a filter change, which reloads the rows against the freshly cleared
+   * toolbar state on its own. Only a view without column filters has to ask for the reload itself.
+   */
+  if (hadColumnFilters) {
+    grid.value?.clearFilters()
+
+    return
+  }
+
+  void controller.goToPage(1)
+}
+
+/**
+ * Narrow one column to the values a quick filter pill was ticked with.
+ *
+ * The pick goes into the grid rather than beside it, which raises the change that reloads the rows - the same
+ * path a filter typed into a column header takes, so there is only ever one idea of what the table is showing.
+ */
+const onQuickFilter = (choice: QuickFilterChoice) => {
+  grid.value?.setColumnFilterValues(choice.colId, choice.values)
+}
+
+/**
+ * Read the columns of the entity tables of the picked industries, which the filter dialog offers.
+ *
+ * Read when the dialog is first opened rather than with the table, because most readers never open it.
+ */
+const loadEntityColumns = async (): Promise<void> => {
+  const scopes: (string | null)[] = props.industries.length > 0 ? props.industries : [null]
+  const configurations = await Promise.all(scopes.map((industry) => readEntityColumns(industry, null)))
+  const seen = new Set<string>()
+  const merged: GeneratedColumn[] = []
+  configurations.forEach((configuration) => {
+    localiseColumns(configuration).columns.forEach((column) => {
+      if (!seen.has(column.colId)) {
+        seen.add(column.colId)
+        merged.push(column)
+      }
+    })
+  })
+  entityColumns.value = merged
+}
+
+const openFieldFilter = async (): Promise<void> => {
+  filterDialog.value = true
+  if (entityColumns.value.length === 0) {
+    try {
+      await loadEntityColumns()
+    } catch (error) {
+      reportError(error)
+    }
+  }
+}
+
+const onApplyFieldFilter = (applied: AppliedFilter) => {
+  fieldLabels.value = { ...fieldLabels.value, [applied.condition.key]: applied.label }
+  fieldFilters.value = [...fieldFilters.value, applied.condition]
+  void controller.goToPage(1)
+}
+
+const onRevealRow = (rowId: string) => {
+  grid.value?.revealRow(rowId)
+}
+
+const onSelectionChanged = (rowIds: string[]) => {
+  selectedIds.value = rowIds
+}
+
+const onSelectAll = () => {
+  grid.value?.setAllSelected(selectedIds.value.length !== controller.rows.value.length)
+}
+
+/**
+ * Lay the open events, or the ticked ones, side by side.
+ */
+const openComparison = (source: 'expanded' | 'selected') => {
+  compareSource.value = source
+  compareDialog.value = true
+}
+
+/**
+ * Take one event out of the comparison, the same way it got in: an open event is closed, a ticked one unticked.
+ */
+const onLeaveComparison = (rowId: string) => {
+  if (compareSource.value === 'selected') {
+    grid.value?.setRowSelected(rowId, false)
+
+    return
+  }
+
+  controller.toggleExpanded(rowId)
+}
+
+const onOpenEvent = (rowId: string) => {
+  void router.push(`/events/${rowId}`)
+}
+
+const onOpenArtifact = (artifact: Artifact) => {
+  viewedArtifact.value = artifact
+  viewerDialog.value = true
+}
+
+const onDownload = (artifact: Artifact) => {
+  downloadArtifact(artifact)
+}
+
+const onExport = async (choice: ExportChoice): Promise<void> => {
+  const picked = choice.selectionOnly ? selectedIds.value : []
+  try {
+    /*
+     * The name is the one the events service stamped the export with, so two exports of the same view never
+     * land in the download folder as one file quietly overwriting the other.
+     */
+    const exported = await exportEvents(
+      buildExportRequest(controller, gridInput, visibleColumns.value, picked),
+      choice.format,
+    )
+    downloadBlob(exported.blob, exported.name)
+    notify(
+      choice.selectionOnly
+        ? t('inventory.exportedSelected', { count: picked.length })
+        : t('inventory.exported'),
+      'success',
+    )
+  } catch (error) {
+    reportError(error)
+  }
+}
+
+/**
+ * Download the current view, or the ticked rows, as a bundle that can be read back in.
+ *
+ * A bundle carries its files, so it is packed exactly the way the plain file archive is - by the storage
+ * service, out of a manifest this service wrote - and takes exactly as long. What it costs is worth saying
+ * before it starts rather than after.
+ */
+const onExportBundle = async (selectionOnly: boolean): Promise<void> => {
+  const picked = selectionOnly ? selectedIds.value : []
+  archiving.value = true
+  notify(t('bundle.packing'), 'info')
+  try {
+    const bundle = await downloadEventBundle(buildExportRequest(controller, gridInput, visibleColumns.value, picked))
+    downloadBlob(bundle.blob, bundle.name)
+    notify(t('bundle.packed'), 'success')
+  } catch (error) {
+    reportError(error)
+  } finally {
+    archiving.value = false
+  }
+}
+
+/**
+ * Take up the inventory a restore has just written into.
+ *
+ * The whole table is read again rather than patched: a restore creates events, and the declarations that
+ * decide what columns there are, so what changed is not a set of rows but what a row is.
+ */
+const onRestored = async (): Promise<void> => {
+  try {
+    await controller.refreshConfiguration()
+    await controller.refreshRows()
+  } catch (error) {
+    reportError(error)
+  }
+}
+
+/**
+ * Download every file of the current view, or of the ticked rows, as one archive.
+ */
+const onDownloadFiles = async (selectionOnly: boolean): Promise<void> => {
+  const picked = selectionOnly ? selectedIds.value : []
+  archiving.value = true
+  notify(t('inventory.packing'), 'info')
+  try {
+    const archive = await downloadEventFiles(buildExportRequest(controller, gridInput, visibleColumns.value, picked))
+    downloadBlob(archive.blob, archive.name)
+    notify(t('inventory.packed'), 'success')
+  } catch (error) {
+    reportError(error)
+  } finally {
+    archiving.value = false
+  }
+}
+
+const onOpenSaveTemplate = () => {
+  templateDialog.value = true
+}
+
+/**
+ * Giving up on the save gives up on the switch that was waiting for it too, so a template picked earlier is
+ * never loaded later on by a save that had nothing to do with it.
+ */
+const onTemplateDialogToggle = (open: boolean) => {
+  if (!open) {
+    pendingTemplate.value = null
+    restoringToDefault.value = false
+  }
+}
+
+const onCancelSaveTemplate = () => {
+  templateDialog.value = false
+  pendingTemplate.value = null
+  restoringToDefault.value = false
+}
+
+const onSaveTemplate = async (): Promise<void> => {
+  try {
+    const saved = await createTemplate({
+      name: templateName.value,
+      description: templateDescription.value,
+      scope: TEMPLATE_SCOPE,
+      industry: singleIndustry.value,
+      shared: templateShared.value,
+      columns: readTemplateColumns(),
+      filters: allFilters.value,
+      sort: controller.sortSpecifications.value,
+    })
+    templates.value = [...templates.value, saved]
+    templateDialog.value = false
+    templateName.value = ''
+    templateDescription.value = ''
+    /* Nothing else is waiting for the save, so the table is now showing the view that was just named. */
+    if (pendingTemplate.value === null && !restoringToDefault.value) {
+      setActiveTemplate(saved.id)
+    }
+    rememberView()
+    notify(t('view.saved'), 'success')
+    await applyPendingTemplate()
+  } catch (error) {
+    reportError(error)
+  }
+}
+
+/**
+ * Load a saved view into the running table - its columns, its ordering and its filters together.
+ *
+ * The visibility is handed to the table as a prop, and the order, the widths, the pinning and the filters are
+ * written into the grid itself, so that the header inputs, the chips of the active filters and the rows that
+ * come back all describe the same view. The rows are reloaded once, at the end, against the whole of it.
+ */
+const applyTemplate = async (template: TableTemplate): Promise<void> => {
+  const ordered = withNewColumns([...template.columns].sort((left, right) => left.order - right.order))
+  visibleColumns.value = ordered.filter((column) => column.visible).map((column) => column.key)
+
+  /* A saved condition on a column goes back into that column; any other one goes back beside the table. */
+  const declared = new Set(columns.value.map((column) => column.colId))
+  const onColumns = template.filters.filter((condition) => declared.has(condition.key))
+  fieldFilters.value = template.filters.filter((condition) => !declared.has(condition.key))
+
+  await grid.value?.applyViewState({
+    columns: ordered.map((column) => ({
+      colId: column.key,
+      visible: column.visible,
+      width: column.width,
+      pinned: column.pinned,
+    })),
+    sort: template.sort,
+    filters: onColumns,
+  })
+
+  controller.filterConditions.value = onColumns
+  if (template.sort.length > 0) {
+    controller.sortSpecifications.value = template.sort
+  }
+  await controller.goToPage(1)
+  setActiveTemplate(template.id)
+  rememberView()
+}
+
+/**
+ * Add the columns the table has grown since a view was saved, each of them as the backend declares it.
+ *
+ * A saved view names the columns that existed when it was saved and says nothing at all about the ones that
+ * were added afterwards. Loading it as written would therefore hide every new column from everybody who
+ * works out of a saved view - which is how a column nobody asked to hide disappears for half the users of
+ * the system. The view keeps its own arrangement, and anything it has never heard of joins it at the end
+ * showing whatever its declaration says it should.
+ */
+const withNewColumns = (saved: TemplateColumn[]): TemplateColumn[] => {
+  const named = new Set(saved.map((column) => column.key))
+  const added = columns.value
+    .filter((column) => !named.has(column.colId))
+    .map((column, index) => ({
+      key: column.colId,
+      visible: !column.hide,
+      order: saved.length + index,
+      width: column.width,
+      pinned: column.pinned,
+    }))
+
+  return added.length === 0 ? saved : [...saved, ...added]
+}
+
+/**
+ * Record which saved view the table is showing, both on screen and in this browser for the next visit.
+ */
+const setActiveTemplate = (templateId: string | null) => {
+  activeTemplateId.value = templateId
+  writeActiveTemplate(TEMPLATE_SCOPE, singleIndustry.value, templateId)
+}
+
+/**
+ * Put the table back the way the backend generates it: every column as it was declared, nothing filtered,
+ * nothing searched and the ordering the configuration asked for. It is the one view always there to return
+ * to, and returning to it forgets the saved view this browser was remembering.
+ */
+const restoreDefaultView = async (): Promise<void> => {
+  visibleColumns.value = columns.value.filter((column) => !column.hide).map((column) => column.colId)
+  controller.search.value = ''
+  controller.parseState.value = 'all'
+  controller.filterConditions.value = []
+  fieldFilters.value = []
+  controller.sortSpecifications.value = [...defaultSort.value]
+
+  await grid.value?.resetView(controller.sortSpecifications.value)
+  await controller.goToPage(1)
+  setActiveTemplate(null)
+  rememberView()
+  notify(t('view.restored'), 'success')
+}
+
+/**
+ * Go back to the generated table, asking first when the current view holds arrangements nobody saved.
+ */
+const onRestoreView = () => {
+  if (savedFingerprint.value === null || savedFingerprint.value === readViewFingerprint()) {
+    void restoreDefaultView()
+
+    return
+  }
+
+  restoringToDefault.value = true
+  restoreDialog.value = true
+}
+
+const onConfirmRestore = () => {
+  restoreDialog.value = false
+  restoringToDefault.value = false
+  void restoreDefaultView()
+}
+
+/**
+ * Keep the current view under a name of its own before the generated one replaces it.
+ */
+const onSaveBeforeRestore = () => {
+  restoreDialog.value = false
+  templateDialog.value = true
+}
+
+/**
+ * Carry out whatever was waiting for the unsaved view to be dealt with - a template to load, or the way back
+ * to the generated table - and nothing at all when the save was not standing in for either.
+ */
+const applyPendingTemplate = async (): Promise<void> => {
+  const waiting = pendingTemplate.value
+  const toDefault = restoringToDefault.value
+  pendingTemplate.value = null
+  restoringToDefault.value = false
+
+  if (waiting !== null) {
+    await applyTemplate(waiting)
+
+    return
+  }
+
+  if (toDefault) {
+    await restoreDefaultView()
+  }
+}
+
+const onApplyTemplate = (template: TableTemplate) => {
+  if (savedFingerprint.value === null || savedFingerprint.value === readViewFingerprint()) {
+    void applyTemplate(template)
+
+    return
+  }
+
+  pendingTemplate.value = template
+  switchDialog.value = true
+}
+
+const onCancelSwitch = () => {
+  pendingTemplate.value = null
+  restoringToDefault.value = false
+  switchDialog.value = false
+}
+
+const onConfirmSwitch = () => {
+  switchDialog.value = false
+  void applyPendingTemplate()
+}
+
+/**
+ * Keep the current view under a name of its own before the picked template replaces it.
+ */
+const onSaveBeforeSwitch = () => {
+  switchDialog.value = false
+  templateDialog.value = true
+}
+
+const onCreated = () => {
+  void controller.refreshRows()
+}
+
+/**
+ * Leave the zoomed table on the key every full screen view is left with.
+ */
+const onKeyDown = (event: KeyboardEvent) => {
+  if (event.key === ESCAPE_KEY && fullscreen.value) {
+    fullscreen.value = false
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', onKeyDown)
+  void load()
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKeyDown)
+})
+
+/* Another pick of industries is another table: other declared fields, other rows, other saved views. */
+watch(
+  () => props.industries.join(','),
+  () => {
+    controller.collapseAll()
+    void load()
+  },
+)
+</script>
+
+<style scoped>
+/*
+ * The inventory grows with the table it holds and lets the browser scroll the page, so a block of rows is
+ * shown in full instead of being squeezed into a letterbox between the toolbar and the pager.
+ */
+.inventory {
+  /* The zoomed table covers the page but stays under the dialogs and menus Vuetify teleports above it. */
+  --inventory-zoom-layer: 100;
+
+  display: flex;
+  flex-direction: column;
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+/*
+ * Zoomed, the inventory is lifted out of the page and over the surrounding chrome, and pinned to the viewport,
+ * so that the toolbar and the pager frame a table that scrolls inside its own body with its header in place.
+ */
+.inventory--zoomed {
+  position: fixed;
+  inset: 0;
+  z-index: var(--inventory-zoom-layer);
+  background-color: rgb(var(--v-theme-background));
+  padding-inline: 2rem;
+  padding-block-end: 0.5rem;
+  min-block-size: 0;
+  overflow: hidden;
+  /* Reaching the end of the rows must not carry on into the page that is still there behind the overlay. */
+  overscroll-behavior: contain;
+}
+
+.inventory__dialog {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.inventory__dialog-hint {
+  font-size: 0.8125rem;
+  opacity: 0.7;
+}
+
+/*
+ * The answers to a question about the current view. They hold the end of the card and drop onto a second
+ * line rather than overflowing it, which is what a row of three buttons - one of them a whole sentence -
+ * does inside a card of a fixed width once the window or the wording leaves it no room.
+ */
+.inventory__answers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-inline: 1rem;
+  padding-block-end: 1rem;
+}
+
+/*
+ * Vuetify tracks the letters of a button apart, which is what made the longest of these wide enough to push
+ * the others out of the card. They are read as words here rather than as labels of a toolbar.
+ */
+.inventory__answer.v-btn {
+  margin-inline-start: 0;
+  letter-spacing: normal;
+}
+
+@media (max-width: 48rem) {
+  .inventory--zoomed {
+    padding-inline: 1rem;
+  }
+}
+</style>
