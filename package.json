@@ -1,0 +1,19 @@
+{
+  "name": "truth-platform",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "libraries/ag-grid-ts",
+    "libraries/core-ui",
+    "skyscanner/frontend",
+    "truth/frontend"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace skyscanner-frontend",
+    "dev:truth": "npm run dev --workspace truth-frontend",
+    "build": "npm run build --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present"
+  }
+}

@@ -1,0 +1,766 @@
+<template>
+  <div class="toolbar">
+    <div class="toolbar__filters">
+      <!--
+        Nothing is ever written under this field - it validates nothing and reports nothing - so the room a
+        field keeps for its messages is given back to the table instead of padding the toolbar with it.
+      -->
+      <v-text-field
+        :model-value="search"
+        class="toolbar__search"
+        :placeholder="t('toolbar.search')"
+        prepend-inner-icon="mdi-magnify"
+        rounded="pill"
+        density="compact"
+        clearable
+        hide-details
+        @update:model-value="onSearch"
+      />
+
+      <v-menu
+        :close-on-content-click="false"
+        location="bottom start"
+      >
+        <template #activator="{ props: activator }">
+          <v-btn
+            v-bind="activator"
+            class="toolbar__pill"
+            variant="text"
+          >
+            <!--
+              The name and the value are one run of text, so a Hebrew pill reads name first; the value is held
+              at the width of the longest of the three states, so switching between them never moves the pills.
+            -->
+            <span
+              class="toolbar__pill-text"
+              dir="auto"
+            ><span class="toolbar__pill-label">{{ t('toolbar.show') }}</span> <span
+              class="toolbar__pill-value toolbar__pill-value--parse"
+            >{{ parseStateLabel }}</span></span>
+            <v-icon
+              size="small"
+              icon="mdi-menu-down"
+            />
+          </v-btn>
+        </template>
+        <!--
+          Both boxes ticked means everything is shown. Clearing the last remaining one would leave a table
+          that shows nothing, so that box refuses to be cleared and stays ticked instead.
+        -->
+        <v-list
+          density="compact"
+          class="toolbar__menu"
+        >
+          <v-list-item>
+            <v-checkbox-btn
+              :model-value="showParsed"
+              :label="t('toolbar.parsed')"
+              density="compact"
+              @update:model-value="onToggleParsed"
+            />
+          </v-list-item>
+          <v-list-item>
+            <v-checkbox-btn
+              :model-value="showNotParsed"
+              :label="t('toolbar.notParsed')"
+              density="compact"
+              @update:model-value="onToggleNotParsed"
+            />
+          </v-list-item>
+        </v-list>
+      </v-menu>
+
+      <v-menu
+        :close-on-content-click="false"
+        location="bottom start"
+      >
+        <template #activator="{ props: activator }">
+          <v-btn
+            v-bind="activator"
+            class="toolbar__pill"
+            variant="text"
+            :title="sortLabel"
+          >
+            <v-icon
+              size="small"
+              icon="mdi-sort"
+            />
+            <!--
+              The value is held at the width of the longest header the menu can put here, so picking another
+              column never moves the pills beside it; a longer header is cut short and read from the tooltip.
+            -->
+            <span
+              class="toolbar__pill-text"
+              dir="auto"
+            ><span class="toolbar__pill-label">{{ t('toolbar.sortBy') }}</span> <span
+              class="toolbar__pill-value toolbar__pill-value--sort"
+              :style="{ inlineSize: sortValueWidth }"
+            >{{ sortLabel }}</span></span>
+            <v-icon
+              size="small"
+              icon="mdi-menu-down"
+            />
+          </v-btn>
+        </template>
+        <v-list
+          density="compact"
+          class="toolbar__menu"
+        >
+          <v-list-item
+            v-for="option in sortOptions"
+            :key="option.key"
+            :title="option.label"
+            :active="sortKey === option.key"
+            @click="emit('update:sort', { key: option.key, direction: sortDirection })"
+          />
+          <v-divider />
+          <v-list-item
+            :title="sortDirection === 'asc' ? t('toolbar.ascending') : t('toolbar.descending')"
+            :prepend-icon="sortDirection === 'asc' ? 'mdi-sort-ascending' : 'mdi-sort-descending'"
+            @click="toggleDirection"
+          />
+        </v-list>
+      </v-menu>
+
+      <!--
+        The menu of the columns stays open while it is used: closing after every tick would make showing three
+        columns three trips through the toolbar.
+      -->
+      <v-menu
+        :close-on-content-click="false"
+        location="bottom start"
+      >
+        <template #activator="{ props: activator }">
+          <v-btn
+            v-bind="activator"
+            class="toolbar__pill"
+            variant="text"
+          >
+            <v-icon
+              size="small"
+              icon="mdi-view-column-outline"
+            />
+            <span class="toolbar__pill-label">{{ t('toolbar.columns') }}</span>
+          </v-btn>
+        </template>
+        <v-list
+          density="compact"
+          class="toolbar__menu toolbar__menu--tall"
+        >
+          <v-list-item
+            v-for="column in toggleableColumns"
+            :key="column.colId"
+          >
+            <v-checkbox-btn
+              :model-value="visibleColumns.includes(column.colId)"
+              :label="column.headerName"
+              density="compact"
+              @update:model-value="emit('toggle-column', column.colId)"
+            />
+            <!-- A column nobody declared is one read off the stored events, and it says so, quietly. -->
+            <span
+              v-if="column.discovered"
+              class="toolbar__column-origin"
+            >
+              {{ t('attributes.notDeclared') }}
+            </span>
+          </v-list-item>
+        </v-list>
+      </v-menu>
+
+      <!--
+        Which saved view the table is showing used to be nowhere on screen: the pill said Templates whether a
+        template was loaded or not, so a user who came back to a filtered table had no way of telling a saved
+        view from one somebody had left half arranged. The pill names the view it is showing instead.
+      -->
+      <v-menu location="bottom start">
+        <template #activator="{ props: activator }">
+          <v-btn
+            v-bind="activator"
+            class="toolbar__pill"
+            :class="{ 'toolbar__pill--active': activeTemplate !== null }"
+            variant="text"
+          >
+            <v-icon
+              size="small"
+              :icon="activeTemplate === null ? 'mdi-bookmark-outline' : 'mdi-bookmark'"
+            />
+            <span
+              class="toolbar__pill-text"
+              dir="auto"
+            ><span class="toolbar__pill-label">{{ t('toolbar.view') }}</span> <span
+              class="toolbar__pill-value toolbar__pill-value--template"
+            >{{ activeTemplateLabel }}</span></span>
+            <v-icon
+              size="small"
+              icon="mdi-menu-down"
+            />
+          </v-btn>
+        </template>
+        <v-list
+          density="compact"
+          class="toolbar__menu"
+        >
+          <v-list-item
+            v-for="template in templates"
+            :key="template.id"
+            :title="template.name"
+            :subtitle="template.shared ? t('toolbar.shared') : t('toolbar.private')"
+            :active="activeTemplate?.id === template.id"
+            @click="emit('apply-template', template)"
+          />
+          <v-divider v-if="templates.length > 0" />
+          <!--
+            The way back to the table as the system generates it: every column shown as it was declared, no
+            filters, no ordering of anybody's choosing. It is the one view that is always there to return to.
+          -->
+          <v-list-item
+            :title="t('toolbar.defaultView')"
+            prepend-icon="mdi-backup-restore"
+            :active="activeTemplate === null"
+            @click="emit('restore-view')"
+          />
+          <v-list-item
+            :title="t('toolbar.saveView')"
+            prepend-icon="mdi-content-save-outline"
+            @click="emit('save-template')"
+          />
+        </v-list>
+      </v-menu>
+
+      <!--
+        A filter on any field of an event or of the entities inside it, including the ones no column shows.
+        The pill counts the conditions it added, which are also named in the chips under the toolbar.
+      -->
+      <v-btn
+        class="toolbar__pill"
+        :class="{ 'toolbar__pill--active': fieldFilterCount > 0 }"
+        variant="text"
+        @click="emit('filter-fields')"
+      >
+        <v-icon
+          size="small"
+          icon="mdi-filter-variant-plus"
+        />
+        <span class="toolbar__pill-label">{{ t('toolbar.filterFields') }}</span>
+        <span
+          v-if="fieldFilterCount > 0"
+          class="toolbar__pill-value"
+        >{{ fieldFilterCount }}</span>
+      </v-btn>
+    </div>
+
+    <div class="toolbar__actions">
+      <!--
+        The zoom lifts the table over the rest of the page, which is what reading a wide table on a large
+        screen needs. It is an icon rather than a labelled button so that the row of actions stays readable.
+      -->
+      <v-btn
+        class="toolbar__zoom"
+        variant="text"
+        :icon="fullscreen ? 'mdi-fullscreen-exit' : 'mdi-fullscreen'"
+        :aria-label="fullscreen ? t('toolbar.leaveFullscreen') : t('toolbar.fullscreen')"
+        :title="fullscreen ? t('toolbar.leaveFullscreen') : t('toolbar.fullscreen')"
+        @click="emit('toggle-fullscreen')"
+      />
+
+      <v-menu location="bottom end">
+        <template #activator="{ props: activator }">
+          <v-btn
+            v-bind="activator"
+            class="toolbar__action"
+            variant="text"
+            prepend-icon="mdi-download-outline"
+            :loading="archiving"
+          >
+            {{ t('toolbar.export') }}
+          </v-btn>
+        </template>
+        <!--
+          The export always covers the table as it is currently filtered. Once rows are ticked the menu
+          also offers the narrower export, so that a selection is never mistaken for the whole view.
+        -->
+        <v-list density="compact">
+          <v-list-subheader>{{ t('toolbar.wholeView') }}</v-list-subheader>
+          <v-list-item
+            :title="t('toolbar.exportCsv')"
+            @click="emit('export', { format: 'csv', selectionOnly: false })"
+          />
+          <v-list-item
+            :title="t('toolbar.exportJson')"
+            @click="emit('export', { format: 'json', selectionOnly: false })"
+          />
+          <v-list-item
+            :title="t('toolbar.exportFiles')"
+            prepend-icon="mdi-folder-zip-outline"
+            @click="emit('download-files', false)"
+          />
+          <!--
+            The bundle is the export that can be read back in: the events as they are stored, the
+            declarations they name, and the bytes of every file they point at.
+          -->
+          <v-list-item
+            :title="t('toolbar.exportBundle')"
+            prepend-icon="mdi-package-variant-closed"
+            @click="emit('export-bundle', false)"
+          />
+          <template v-if="selectedCount > 0">
+            <v-divider />
+            <v-list-subheader>{{ t('toolbar.selectedOnly', { count: selectedCount }) }}</v-list-subheader>
+            <v-list-item
+              :title="t('toolbar.exportCsv')"
+              @click="emit('export', { format: 'csv', selectionOnly: true })"
+            />
+            <v-list-item
+              :title="t('toolbar.exportJson')"
+              @click="emit('export', { format: 'json', selectionOnly: true })"
+            />
+            <v-list-item
+              :title="t('toolbar.exportSelectedFiles')"
+              prepend-icon="mdi-folder-zip-outline"
+              @click="emit('download-files', true)"
+            />
+            <v-list-item
+              :title="t('toolbar.exportBundle')"
+              prepend-icon="mdi-package-variant-closed"
+              @click="emit('export-bundle', true)"
+            />
+          </template>
+
+          <!--
+            Reading a bundle in is offered from the same menu the bundle was written from, because a reader
+            looking for the way back in looks where the way out was. It stands under its own heading, below
+            everything that leaves, so it can never be mistaken for one of them.
+          -->
+          <v-divider />
+          <v-list-subheader>{{ t('toolbar.intoInventory') }}</v-list-subheader>
+          <v-list-item
+            :title="t('toolbar.import')"
+            prepend-icon="mdi-upload-outline"
+            @click="emit('import')"
+          />
+        </v-list>
+      </v-menu>
+
+      <!-- Two or more ticked events can be laid side by side, the same way two open ones can. -->
+      <v-btn
+        v-if="selectedCount > 1"
+        class="toolbar__action"
+        color="primary"
+        variant="tonal"
+        prepend-icon="mdi-compare-horizontal"
+        @click="emit('compare')"
+      >
+        {{ t('toolbar.compare', { count: selectedCount }) }}
+      </v-btn>
+
+      <v-btn
+        class="toolbar__action"
+        color="primary"
+        variant="tonal"
+        @click="emit('select-all')"
+      >
+        {{ selectedCount > 0 ? t('toolbar.selected', { count: selectedCount }) : t('toolbar.selectAll') }}
+      </v-btn>
+
+      <v-btn
+        class="toolbar__action"
+        color="primary"
+        prepend-icon="mdi-plus"
+        @click="emit('create')"
+      >
+        {{ t('toolbar.newEvent') }}
+      </v-btn>
+    </div>
+  </div>
+</template>
+
+<script lang="ts">
+import type { ParseState } from '@/models/common'
+import type { GeneratedColumn } from '@/models/grid'
+import type { SortDirection, SortSpecification } from '@/models/query'
+import type { TableTemplate } from '@truth-platform/core-ui'
+
+interface Props {
+  search: string
+  parseState: ParseState
+  sortKey: string
+  sortDirection: SortDirection
+  columns: GeneratedColumn[]
+  visibleColumns: string[]
+  templates: TableTemplate[]
+  /** The saved view the table is currently showing, or nothing while it is on the generated one. */
+  activeTemplate?: TableTemplate | null
+  selectedCount: number
+  fullscreen: boolean
+  archiving?: boolean
+  /** How many conditions the field filter added, beside the column filters. */
+  fieldFilterCount?: number
+}
+
+/** One column the table can be ordered by. */
+interface SortOption {
+  key: string
+  label: string
+}
+
+interface ExportChoice {
+  format: string
+  selectionOnly: boolean
+}
+
+interface Emits {
+  (event: 'update:search', value: string): void
+  (event: 'update:parseState', value: ParseState): void
+  (event: 'update:sort', value: SortSpecification): void
+  (event: 'toggle-column', colId: string): void
+  (event: 'restore-view'): void
+  (event: 'apply-template', template: TableTemplate): void
+  (event: 'save-template'): void
+  (event: 'export', choice: ExportChoice): void
+  (event: 'download-files', selectionOnly: boolean): void
+  (event: 'export-bundle', selectionOnly: boolean): void
+  (event: 'import'): void
+  (event: 'select-all'): void
+  (event: 'compare'): void
+  (event: 'create'): void
+  (event: 'toggle-fullscreen'): void
+  (event: 'filter-fields'): void
+}
+
+export type { ExportChoice }
+</script>
+
+<script setup lang="ts">
+import { useLanguage } from '@truth-platform/core-ui'
+import { computed } from 'vue'
+
+const { t } = useLanguage()
+
+const PARSE_KEYS: Record<ParseState, string> = {
+  all: 'toolbar.all',
+  parsed: 'toolbar.parsed',
+  not_parsed: 'toolbar.notParsed',
+}
+
+/*
+ * The columns that are furniture of the table rather than values of it: the arrow that opens a row, the one
+ * that opens the event page, and the controls. None of them carries a heading, so offering them here would
+ * put nameless boxes in the menu, and hiding the way into the event page is not a choice worth offering.
+ */
+const NON_TOGGLEABLE: string[] = ['expander', 'actions', 'open']
+
+/**
+ * The moment an event was created, which the table no longer shows as a column but still orders by - it is
+ * the order the inventory opens in.
+ */
+const CREATED_AT_KEY = 'created_at'
+
+/*
+ * The `ch` unit measures a digit, and a header is written in proportional letters that are narrower than one,
+ * so the count of its characters is scaled by this before it becomes a width.
+ */
+const SORT_LABEL_WIDTH_FACTOR = 0.95
+
+/** Even a table of very short headers keeps a pill wide enough to read the word inside it. */
+const SORT_LABEL_MIN_CHARACTERS = 8
+
+/*
+ * A dynamic field can be declared under a name of any length, and one long header would otherwise widen the
+ * pill until the row of controls no longer fits on one line. Past this the name is cut short inside the pill
+ * and stays readable in full from the tooltip the pill carries.
+ */
+const SORT_LABEL_MAX_CHARACTERS = 14
+
+const props = withDefaults(defineProps<Props>(), { archiving: false, activeTemplate: null, fieldFilterCount: 0 })
+const emit = defineEmits<Emits>()
+
+/*
+ * The two boxes are a view of the single parse state rather than state of their own, so they can never drift
+ * away from the table they describe.
+ */
+const showParsed = computed<boolean>(() => props.parseState !== 'not_parsed')
+const showNotParsed = computed<boolean>(() => props.parseState !== 'parsed')
+
+const parseStateLabel = computed<string>(() => t(PARSE_KEYS[props.parseState]))
+
+const activeTemplateLabel = computed<string>(() => props.activeTemplate?.name ?? t('toolbar.defaultView'))
+
+const sortableColumns = computed<GeneratedColumn[]>(() => props.columns.filter((column) => column.sortable))
+
+/* The columns the table can be ordered by, and the moment of creation, which no column shows any more. */
+const sortOptions = computed<SortOption[]>(() => {
+  const options = sortableColumns.value.map((column) => ({ key: column.colId, label: column.headerName }))
+  if (!options.some((option) => option.key === CREATED_AT_KEY)) {
+    options.push({ key: CREATED_AT_KEY, label: t('event.createdAt') })
+  }
+
+  return options
+})
+
+const toggleableColumns = computed<GeneratedColumn[]>(() =>
+  props.columns.filter((column) => !NON_TOGGLEABLE.includes(column.colId)),
+)
+
+const sortLabel = computed<string>(() => {
+  const option = sortOptions.value.find((candidate) => candidate.key === props.sortKey)
+
+  return option === undefined ? t('event.createdAt') : option.label
+})
+
+/**
+ * Work out how wide the name of the ordering has to be held.
+ *
+ * A pill that shrinks and grows around the column it names drags every control to its right along with it, so
+ * the width is taken from the longest name the menu is able to put there rather than from the current one, and
+ * capped so that a single long header cannot push the rest of the toolbar onto a second line.
+ */
+const sortValueWidth = computed<string>(() => {
+  const longest = sortOptions.value.reduce(
+    (widest, option) => Math.max(widest, option.label.length),
+    SORT_LABEL_MIN_CHARACTERS,
+  )
+  const held = Math.min(longest, SORT_LABEL_MAX_CHARACTERS)
+
+  return `${(held * SORT_LABEL_WIDTH_FACTOR).toFixed(2)}ch`
+})
+
+const onSearch = (value: string | null) => {
+  emit('update:search', value ?? '')
+}
+
+/**
+ * Turn the two boxes into the single state the table runs on, keeping at least one of them ticked.
+ */
+const applyParse = (parsed: boolean, notParsed: boolean) => {
+  if (!parsed && !notParsed) {
+    return
+  }
+
+  if (parsed && notParsed) {
+    emit('update:parseState', 'all')
+
+    return
+  }
+
+  emit('update:parseState', parsed ? 'parsed' : 'not_parsed')
+}
+
+const onToggleParsed = (value: boolean | null) => {
+  applyParse(value === true, showNotParsed.value)
+}
+
+const onToggleNotParsed = (value: boolean | null) => {
+  applyParse(showParsed.value, value === true)
+}
+
+const toggleDirection = () => {
+  emit('update:sort', {
+    key: props.sortKey,
+    direction: props.sortDirection === 'asc' ? 'desc' : 'asc',
+  })
+}
+</script>
+
+<style scoped>
+.toolbar {
+  /*
+   * The whole row - the search, the four filter pills and the four actions - is meant to stand on one line at
+   * an ordinary desktop width, so every control of it is measured against the same few metrics rather than
+   * being spaced by whatever its component defaults to.
+   */
+  --toolbar-gap: 0.5rem;
+
+  /*
+   * The height every control of the row shares. It is the height Vuetify gives a compact field, so that the
+   * search, the pills and the buttons stand as one row of controls rather than three sizes of them.
+   */
+  --toolbar-control-height: 2.5rem;
+
+  /* Wide enough for NOT PARSED, the longest of the three states the Show pill can name. */
+  --toolbar-parse-width: 5.75rem;
+
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--toolbar-gap);
+  /* Every row of padding above the toolbar is a row of the table the user does not get to see. */
+  padding-block: 0.5rem 0.75rem;
+}
+
+.toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--toolbar-gap);
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+
+/*
+ * The search is the one control of the row that has no natural width, so it is the one that gives way: it is
+ * laid out narrow enough for the whole row to fit and spends whatever the row has left over, up to a width
+ * past which a search term is not any easier to read.
+ */
+.toolbar__search {
+  flex: 1 1 10rem;
+  max-inline-size: 20rem;
+  min-inline-size: 8rem;
+}
+
+/* The search box is a control like the pills next to it, so it carries the same fill and outline. */
+.toolbar__search :deep(.v-field) {
+  background-color: rgb(var(--v-theme-control-surface));
+  border: 0.0625rem solid rgb(var(--v-theme-control-border));
+}
+
+/* A term is read here as a value of the table, at the size the pills next to it name their values in. */
+.toolbar__search :deep(.v-field__input) {
+  font-size: 0.875rem;
+}
+
+.toolbar__search :deep(.v-field:hover) {
+  background-color: rgb(var(--v-theme-control-surface-hover));
+}
+
+.toolbar__search :deep(.v-field--focused) {
+  border-color: rgb(var(--v-theme-primary));
+}
+
+/*
+ * The filter controls sit straight on the page background. In the dark palette the fill alone separates them,
+ * but in the light one the fill is only a shade away from the page, so they also carry a border to stay
+ * readable as controls rather than melting into the background.
+ */
+.toolbar__pill.v-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border: 0.0625rem solid rgb(var(--v-theme-control-border));
+  border-radius: 999rem;
+  background-color: rgb(var(--v-theme-control-surface));
+  color: rgb(var(--v-theme-on-surface));
+  padding-inline: 0.625rem;
+  padding-block: 0.25rem;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  text-transform: none;
+  block-size: auto;
+  min-block-size: var(--toolbar-control-height);
+  min-inline-size: 0;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.toolbar__pill.v-btn:hover {
+  background-color: rgb(var(--v-theme-control-surface-hover));
+}
+
+.toolbar__pill.v-btn :deep(.v-btn__content) {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.toolbar__pill-label {
+  opacity: 0.75;
+}
+
+.toolbar__pill-text {
+  white-space: nowrap;
+}
+
+.toolbar__pill-value {
+  display: inline-block;
+  font-weight: 600;
+  text-align: start;
+  vertical-align: bottom;
+}
+
+.toolbar__pill-value--parse {
+  min-inline-size: var(--toolbar-parse-width);
+}
+
+/* The width of this one is held from the script, and a header too long for it ends in an ellipsis. */
+.toolbar__pill-value--sort {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/*
+ * The actions hold the end of the row. Once the window is too narrow to keep them on the same line as the
+ * filters they drop onto a line of their own, and the margin keeps them at the end of that line as well.
+ */
+.toolbar__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--toolbar-gap);
+  flex: 0 0 auto;
+  margin-inline-start: auto;
+}
+
+/*
+ * The buttons are written in capitals, which are wide, and the row has no width to spare. Dropping the extra
+ * spacing Vuetify sets between their letters is what keeps them on the line with the filters beside them.
+ */
+.toolbar__action.v-btn {
+  --v-btn-height: var(--toolbar-control-height);
+
+  padding-inline: 0.75rem;
+  font-size: 0.8125rem;
+  letter-spacing: normal;
+}
+
+/* An icon button is laid out wider than the buttons beside it, and here it stands in the row with them. */
+.toolbar__zoom.v-btn {
+  inline-size: var(--toolbar-control-height);
+  block-size: var(--toolbar-control-height);
+}
+
+.toolbar__menu {
+  min-inline-size: 12rem;
+}
+
+/*
+ * A view can be saved under a name of any length, and one long name would otherwise widen the pill until the
+ * row of controls no longer fits on one line, so the name is cut short inside the pill.
+ */
+.toolbar__pill-value--template {
+  max-inline-size: 10rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A table showing a saved view says so with the pill itself rather than only with the name inside it. */
+.toolbar__pill--active.v-btn {
+  color: rgb(var(--v-theme-primary));
+}
+
+/* The origin of a discovered column is read second, so it is set smaller and quieter than its name. */
+.toolbar__column-origin {
+  display: block;
+  padding-inline-start: 2.25rem;
+  font-size: 0.6875rem;
+  line-height: 1.2;
+  opacity: 0.6;
+}
+
+.toolbar__menu--tall {
+  max-block-size: 24rem;
+  overflow-y: auto;
+}
+
+/*
+ * A window this narrow cannot hold the row on one line whatever the controls are shrunk to, so the search is
+ * given a line of its own instead of being squeezed to a box a term no longer fits in.
+ */
+@media (max-width: 48rem) {
+  .toolbar__search {
+    flex: 1 1 100%;
+    max-inline-size: none;
+  }
+}
+</style>

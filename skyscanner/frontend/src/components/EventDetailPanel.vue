@@ -1,0 +1,413 @@
+<template>
+  <div class="detail-panel">
+    <!--
+      Everything the event was written with beyond its built in columns - the fields its industry declared,
+      the ones its type asks for and anything a script left on it - laid out under the row it belongs to
+      rather than hidden behind a horizontal scroll of the inventory.
+    -->
+    <section
+      v-if="!loading && eventAttributeColumns.length > 0"
+      class="detail-panel__section"
+    >
+      <AttributesTable
+        :columns="eventAttributeColumns"
+        :row="eventRow"
+        :taxonomy="taxonomy"
+        :token-for="paletteToken"
+        :title="t('detail.attributes')"
+        :empty-text="EMPTY_PLACEHOLDER"
+        @open="emit('open', $event)"
+        @download="emit('download', $event)"
+      />
+    </section>
+
+    <!-- The groups wait for their schemas, so a table never appears for an instant without its columns. -->
+    <template v-if="!loading">
+      <section
+        v-for="group in entityGroups"
+        :key="group.key"
+        class="detail-panel__section"
+      >
+        <SectionHeader
+          :title="group.name"
+          :count="group.rows.length"
+        >
+          <v-btn
+            class="detail-panel__add"
+            prepend-icon="mdi-plus"
+            size="small"
+            variant="tonal"
+            color="primary"
+            @click.stop="openAddEntity(group.key)"
+          >
+            {{ t('detail.addEntity') }}
+          </v-btn>
+        </SectionHeader>
+        <EntityTable
+          :rows="group.rows"
+          :columns="columnsOf(group.key)"
+          :industries="taxonomy"
+          :downloading="archiving"
+          @open="emit('open', $event)"
+          @download="emit('download', $event)"
+          @edit="openEditEntity"
+          @download-entities="onDownloadEntities"
+        />
+      </section>
+    </template>
+
+    <!--
+      An event without a single entity would otherwise expand into nothing at all, so it says so and offers
+      the same add action the populated groups carry in their heading.
+    -->
+    <div
+      v-if="!loading && entityGroups.length === 0"
+      class="detail-panel__empty"
+    >
+      <v-btn
+        color="primary"
+        variant="tonal"
+        prepend-icon="mdi-plus"
+        @click.stop="openAddEntity(null)"
+      >
+        {{ t('detail.addEntity') }}
+      </v-btn>
+    </div>
+
+    <div
+      v-if="loading"
+      class="detail-panel__loading"
+    >
+      <v-progress-circular
+        indeterminate
+        size="24"
+      />
+    </div>
+
+    <AddEntityDialog
+      v-if="eventDetail !== null"
+      v-model="entityDialog"
+      :event="eventDetail"
+      :entity="editedEntity"
+      :default-type-key="pendingTypeKey"
+      @added="onEntitySaved"
+    />
+  </div>
+</template>
+
+<script lang="ts">
+import type { Artifact, JsonValue } from '@/models/common'
+import type { EntityResponse } from '@/models/entity'
+import type { EventDetail, EventType } from '@/models/event'
+import type { GeneratedColumn, GeneratedGridConfiguration, GridRow } from '@/models/grid'
+
+interface Props {
+  eventId: string
+  eventRow: GridRow
+  industry: string
+  entities?: EntityResponse[] | null
+}
+
+interface Emits {
+  (event: 'open', artifact: Artifact): void
+  (event: 'download', artifact: Artifact): void
+}
+
+interface EntityGroup {
+  key: string
+  name: string
+  rows: GridRow[]
+}
+
+/** What an entity type with no configuration of its own is laid out with. */
+const EMPTY_CONFIGURATION: GeneratedGridConfiguration = {
+  scope: 'entity',
+  industry: null,
+  columns: [],
+  defaultSort: [],
+  quickFilterKeys: [],
+  rowHeight: 44,
+  headerHeight: 44,
+  version: '',
+}
+</script>
+
+<script setup lang="ts">
+import { computed, onMounted, ref, watch } from 'vue'
+
+import AddEntityDialog from '@/components/AddEntityDialog.vue'
+import EntityTable from '@/components/EntityTable.vue'
+import {
+  AttributesTable,
+  EMPTY_PLACEHOLDER,
+  SectionHeader,
+  localName,
+  useLanguage,
+  type TaxonomyItem,
+} from '@truth-platform/core-ui'
+import { useSnackbar } from '@truth-platform/core-ui'
+import { useIndustries } from '@/composables/useIndustries'
+import { paletteToken } from '@/utils/colors'
+import { listEntities } from '@/requests/entities'
+import { readEvent } from '@/requests/events'
+import { readEntityColumns, readEventColumns } from '@/requests/grid'
+import { downloadEntityArchive, toArchiveSources } from '@/requests/storage'
+import { attributeColumns, localiseColumns } from '@truth-platform/core-ui'
+import { readText } from '@truth-platform/core-ui'
+import { listEventTypes } from '@/requests/schema'
+import { askedFieldKeys, eventAttributeColumnsFor } from '@/utils/event-fields'
+import { entityToRow } from '@/utils/rows'
+
+const props = withDefaults(defineProps<Props>(), { entities: null })
+const emit = defineEmits<Emits>()
+
+const { industries } = useIndustries()
+const { notify, reportError } = useSnackbar()
+const { t } = useLanguage()
+
+const taxonomy = computed<TaxonomyItem[]>(() =>
+  industries.value.map((industry) => ({
+    key: industry.key,
+    name: industry.name,
+    name_he: industry.name_he,
+    icon: industry.icon,
+    color: '',
+  })),
+)
+
+/* What each entity type is called in the language of the page, read off the column vocabulary of the table. */
+const typeNames = ref<Record<string, string>>({})
+
+const loading = ref<boolean>(false)
+const loadedEntities = ref<EntityResponse[]>([])
+const entityColumns = ref<Record<string, GeneratedColumn[]>>({})
+const eventColumns = ref<GeneratedColumn[]>([])
+const eventTypes = ref<EventType[]>([])
+const eventDetail = ref<EventDetail | null>(null)
+const entityDialog = ref<boolean>(false)
+const pendingTypeKey = ref<string | null>(null)
+const editedEntity = ref<EntityResponse | null>(null)
+const archiving = ref<boolean>(false)
+
+const effectiveEntities = computed<EntityResponse[]>(() => props.entities ?? loadedEntities.value)
+
+/*
+ * The entities are grouped by the key of their type rather than by its label, because the key is what
+ * selects the schema of the group: a telemetry and a log collection describe themselves with different
+ * fields and therefore render different columns.
+ */
+const entityGroups = computed<EntityGroup[]>(() => {
+  const groups = new Map<string, EntityGroup>()
+  effectiveEntities.value.forEach((entity) => {
+    const key = entity.object_type_key.length > 0 ? entity.object_type_key : entity.object_type.name
+    const name = typeNames.value[entity.object_type.name] ?? entity.object_type.name
+    const group = groups.get(key) ?? { key, name, rows: [] }
+    group.rows.push(entityToRow(entity))
+    groups.set(key, group)
+  })
+
+  return [...groups.values()]
+})
+
+const columnsOf = (typeKey: string): GeneratedColumn[] => entityColumns.value[typeKey] ?? []
+
+/*
+ * The generated columns of the inventory for this industry, read only so that the attributes underneath the
+ * event can be rendered the way their own declarations ask for rather than as a wall of text.
+ */
+const eventAttributeColumns = computed<GeneratedColumn[]>(() => {
+  /* The row names the types of its event by key, which is how the types are matched up here. */
+  const keys = props.eventRow.event_type_keys
+  const filedUnder = new Set(Array.isArray(keys) ? keys.map(String) : [])
+  const asked = askedFieldKeys(eventTypes.value.filter((candidate) => filedUnder.has(candidate.key)))
+
+  return eventAttributeColumnsFor(
+    attributeColumns(eventColumns.value, props.eventRow),
+    asked,
+    props.eventRow.data as Record<string, JsonValue> | undefined,
+  )
+})
+
+/**
+ * Read the column definitions of the inventory, which is what describes the attributes of the event itself.
+ */
+const loadEventColumns = async (): Promise<void> => {
+  const [configuration, types] = await Promise.all([
+    readEventColumns(props.industry.length > 0 ? props.industry : null),
+    listEventTypes(null),
+  ])
+  eventColumns.value = localiseColumns(configuration).columns
+  eventTypes.value = types
+}
+
+/**
+ * Read the column definitions of every entity type present, so each group follows its own declared schema.
+ */
+const loadEntityColumns = async (): Promise<void> => {
+  const keys = entityGroups.value.map((group) => group.key)
+  const configurations = await Promise.all(keys.map((key) => readEntityColumns(props.industry, key)))
+  const byType: Record<string, GeneratedColumn[]> = {}
+  const names: Record<string, string> = {}
+  keys.forEach((key, index) => {
+    const columns = localiseColumns(configurations[index] ?? { ...EMPTY_CONFIGURATION }).columns
+    byType[key] = columns
+    columns
+      .find((column) => column.colId === 'object_type_name')
+      ?.filterOptions.forEach((option) => {
+        names[option.value] = localName({ name: option.label, name_he: option.labelHebrew })
+      })
+  })
+  entityColumns.value = byType
+  typeNames.value = names
+}
+
+const load = async (): Promise<void> => {
+  loading.value = true
+  try {
+    if (props.entities === null) {
+      loadedEntities.value = await listEntities(props.eventId)
+    }
+    await Promise.all([loadEventColumns(), loadEntityColumns()])
+  } catch (error) {
+    reportError(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+/**
+ * Open the entity dialog, loading the event it needs on the first use.
+ *
+ * The same dialog adds and edits: handed an entity it locks the type and asks why the change is being made,
+ * and handed nothing it starts an empty one of the type the heading was pressed on.
+ */
+const openEntityDialog = async (typeKey: string | null, entity: EntityResponse | null): Promise<void> => {
+  pendingTypeKey.value = typeKey
+  editedEntity.value = entity
+  try {
+    if (eventDetail.value === null || eventDetail.value.id !== props.eventId) {
+      eventDetail.value = await readEvent(props.eventId)
+    }
+    entityDialog.value = true
+  } catch (error) {
+    reportError(error)
+  }
+}
+
+const openAddEntity = async (typeKey: string | null): Promise<void> => {
+  await openEntityDialog(typeKey, null)
+}
+
+const openEditEntity = async (entityId: string): Promise<void> => {
+  const entity = effectiveEntities.value.find((candidate) => candidate.id === entityId)
+  if (entity === undefined) {
+    return
+  }
+
+  await openEntityDialog(null, entity)
+}
+
+const onEntitySaved = async (): Promise<void> => {
+  entityDialog.value = false
+  editedEntity.value = null
+  loadedEntities.value = await listEntities(props.eventId)
+  await loadEntityColumns()
+}
+
+/**
+ * Download the files of the picked entities as one archive named after the event they belong to.
+ */
+const onDownloadEntities = async (entityIds: string[]): Promise<void> => {
+  const picked = effectiveEntities.value.filter((entity) => entityIds.includes(entity.id))
+  if (picked.length === 0 || archiving.value) {
+    return
+  }
+
+  archiving.value = true
+  try {
+    await downloadEntityArchive(
+      readText(props.eventRow, 'event_id'),
+      readText(props.eventRow, 'name'),
+      toArchiveSources(picked),
+    )
+    notify(t('inventory.packed'), 'success')
+  } catch (error) {
+    reportError(error)
+  } finally {
+    archiving.value = false
+  }
+}
+
+onMounted(load)
+watch(() => props.eventId, load)
+</script>
+
+<style scoped>
+.detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-inline: 1.5rem;
+  padding-block: 0.875rem 1.25rem;
+  background-color: rgb(var(--v-theme-table-row-alt));
+}
+
+.detail-panel__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.detail-panel__add.v-btn {
+  letter-spacing: normal;
+}
+
+.detail-panel__table {
+  border: 0.0625rem solid rgb(var(--v-theme-app-border));
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.detail-panel__head {
+  display: flex;
+  background-color: rgb(var(--v-theme-table-header));
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.detail-panel__row {
+  display: flex;
+  background-color: rgb(var(--v-theme-table-row));
+  border-block-start: 0.0625rem solid rgb(var(--v-theme-app-border));
+}
+
+.detail-panel__cell {
+  flex: 1 1 0;
+  min-inline-size: 0;
+  padding-inline: 1rem;
+  padding-block: 0.75rem;
+  overflow: hidden;
+}
+
+/*
+ * The panel measures itself and the row it sits in is given what it measures, so a spinner on its own would
+ * collapse the row and then throw it open again once the entities arrived. The wait is given about the room
+ * the panel is going to need, which turns that into one modest adjustment rather than a jump.
+ */
+.detail-panel__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 10rem;
+  padding-block: 1rem;
+}
+
+.detail-panel__empty {
+  display: flex;
+  justify-content: center;
+  border: 0.0625rem dashed rgb(var(--v-theme-app-border));
+  border-radius: 0.5rem;
+  padding-block: 1rem;
+}
+</style>
