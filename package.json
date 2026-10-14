@@ -1,0 +1,19 @@
+{
+  "name": "truth-platform",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "libraries/ui",
+    "libraries/grid",
+    "skyscanner/web",
+    "truth/web"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @truth-platform/skyscanner-web",
+    "dev:truth": "npm run dev --workspace @truth-platform/truth-web",
+    "build": "npm run build --workspaces --if-present",
+    "type-check": "npm run type-check --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
+  }
+}
