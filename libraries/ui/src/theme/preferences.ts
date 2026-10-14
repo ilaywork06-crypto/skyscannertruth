@@ -65,7 +65,7 @@ export function installPreferences(prefix: string, defaults: { language?: Langua
   watchEffect(() => {
     const mode: Mode = isDark.value ? 'dark' : 'light'
     const css = themeCss(state.accent, mode)
-    sheet.textContent = `:root { ${css} }`
+    sheet.textContent = `html:root { ${css} }`
     document.documentElement.classList.toggle('dark', mode === 'dark')
     // What the pre-paint script reads on the next load.
     storage.set(key('paint-light'), themeCss(state.accent, 'light'))
@@ -111,5 +111,5 @@ export function usePreferences() {
  * (no flash of the wrong colours). `prefix` must match installPreferences.
  */
 export function prePaintScript(prefix: string): string {
-  return `try{var p=${JSON.stringify(prefix + '.')},s=localStorage,t=s.getItem(p+'theme')||'system',d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches),c=s.getItem(p+'paint-'+(d?'dark':'light'));if(d)document.documentElement.classList.add('dark');if(c){var e=document.createElement('style');e.id='theme-tokens';e.textContent=':root{'+c+'}';document.head.appendChild(e)}if(s.getItem(p+'lang')==='he'){document.documentElement.lang='he';document.documentElement.dir='rtl'}}catch(e){}`
+  return `try{var p=${JSON.stringify(prefix + '.')},s=localStorage,t=s.getItem(p+'theme')||'system',d=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches),c=s.getItem(p+'paint-'+(d?'dark':'light'));if(d)document.documentElement.classList.add('dark');if(c){var e=document.createElement('style');e.id='theme-tokens';e.textContent='html:root{'+c+'}';document.head.appendChild(e)}if(s.getItem(p+'lang')==='he'){document.documentElement.lang='he';document.documentElement.dir='rtl'}}catch(e){}`
 }

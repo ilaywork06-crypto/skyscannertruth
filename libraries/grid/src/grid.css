@@ -1,0 +1,30 @@
+/*
+ * The cells and controls AG Grid mounts outside the app's component tree (scoped styles never reach them), so
+ * these are plain, namespaced rules. Imported once by each client.
+ */
+.sky-grid .ag-header-cell-text { letter-spacing: 0.01em; }
+.sky-grid .sky-cell { display: flex; align-items: center; }
+.sky-grid .sky-cell > .ag-cell-wrapper,
+.sky-grid .sky-cell > .ag-cell-value,
+.sky-grid .sky-cell > .ag-cell-wrapper > .ag-cell-value { flex: 1 1 auto; min-width: 0; }
+.sky-grid .sky-row--detail { background: rgb(var(--muted) / 0.45); }
+
+.gc-empty { color: rgb(var(--muted-foreground) / 0.6); }
+.gc-text { display: flex; align-items: center; gap: 4px; min-width: 0; width: 100%; }
+.gc-text__value { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: start; unicode-bidi: plaintext; }
+.gc-text--wrap .gc-text__value { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.45; padding-block: 8px; }
+.gc-chips { display: flex; align-items: center; gap: 4px; min-width: 0; overflow: hidden; width: 100%; }
+.gc-expand {
+  position: relative; display: grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 6px;
+  color: rgb(var(--muted-foreground)); opacity: 0; transition: opacity 120ms;
+}
+.gc-expand::before { content: ''; position: absolute; inset: -6px; }
+.gc-expand svg { width: 14px; height: 14px; }
+.ag-row-hover .gc-expand, .gc-expand:focus-visible { opacity: 1; }
+.gc-expand:hover { background: rgb(var(--muted)); color: rgb(var(--foreground)); }
+.gc-expand--matched { opacity: 1; color: rgb(var(--warning)); }
+.gc-date { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.gc-date--stamp { color: rgb(var(--muted-foreground)); font-size: 12.5px; }
+.gc-set-filter { padding: 10px; width: 17rem; background: rgb(var(--popover)); }
+.ag-header-cell-filter-button { position: relative; z-index: 2; }
+.ag-header-cell-filter-button::before { content: ''; position: absolute; inset: -6px; }

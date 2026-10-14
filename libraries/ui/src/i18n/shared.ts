@@ -151,7 +151,10 @@ export const SHARED: Translations = {
     "nav.expand": "Expand",
     "notFound.title": "Page not found",
     "notFound.text": "The page you’re looking for doesn’t exist.",
-    "notFound.home": "Back to the start"
+    "notFound.home": "Back to the start",
+    "pagination.perPage": "Rows per page",
+    "pagination.previous": "Previous page",
+    "pagination.next": "Next page"
   },
   "he": {
     "filters.activeLabel": "מסונן לפי",
@@ -302,6 +305,9 @@ export const SHARED: Translations = {
     "nav.expand": "הרחבה",
     "notFound.title": "הדף לא נמצא",
     "notFound.text": "הדף שחיפשתם לא קיים.",
-    "notFound.home": "חזרה להתחלה"
+    "notFound.home": "חזרה להתחלה",
+    "pagination.perPage": "שורות בעמוד",
+    "pagination.previous": "העמוד הקודם",
+    "pagination.next": "העמוד הבא"
   }
 }

@@ -3,6 +3,7 @@
  * <ConfirmHost/> at the root.
  */
 import { shallowRef } from 'vue'
+import { translate } from '../i18n'
 
 export interface ConfirmOptions {
   title: string
@@ -40,7 +41,6 @@ export function useDirtyGuard(options: { isDirty: () => boolean; close: () => vo
   return {
     async attemptClose(): Promise<void> {
       if (!options.isDirty()) return options.close()
-      const { translate } = await import('../i18n')
       const discard = await confirm({
         title: translate('common.unsavedTitle'),
         description: translate('common.unsavedBody'),
