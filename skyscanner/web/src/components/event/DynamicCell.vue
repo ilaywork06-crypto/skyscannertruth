@@ -36,7 +36,11 @@ const kind = computed<Kind>(() => {
 const params = computed(() => props.column.cellRendererParams ?? {})
 const palette = computed(() => (typeof params.value.palette === 'string' ? params.value.palette : undefined))
 const raw = computed(() => readPath(props.row, props.column.field))
-const text = computed(() => readText(props.row, props.column.field))
+const text = computed(() => {
+  const value = readText(props.row, props.column.field)
+  // A list kept as lines (notes) reads as one line of items.
+  return props.column.cellRendererParams?.display === 'list' ? value.split('\n').map((s) => s.trim()).filter(Boolean).join(' · ') : value
+})
 
 const look = (v: string) => lookOf(v, palette.value, props.column.filterOptions ?? [], props.taxonomy)
 const chips = computed(() => {

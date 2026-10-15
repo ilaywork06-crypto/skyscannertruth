@@ -284,11 +284,11 @@ function onSaved(updated: EventDetail) {
             <dt class="fact-label">{{ t('event.result') }}</dt>
             <dd class="mt-1"><Badge>{{ valueLabel(event.experiment_result) }}</Badge></dd>
           </div>
-          <div class="sm:text-end">
+          <div>
             <dt class="fact-label">{{ t('event.createdAt') }}</dt>
             <dd class="mt-1 text-sm tabular-nums text-muted-foreground" dir="ltr">{{ formatDateTime(event.created_at) }}</dd>
           </div>
-          <div class="sm:text-end">
+          <div>
             <dt class="fact-label">{{ t('event.updatedAt') }}</dt>
             <dd class="mt-1 text-sm tabular-nums text-muted-foreground" dir="ltr">{{ formatDateTime(event.updated_at) }}</dd>
           </div>
