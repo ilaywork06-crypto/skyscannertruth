@@ -48,7 +48,13 @@ async function reload() {
   try {
     const [list, fields] = await Promise.all([
       kind.value === 'event' ? listEventTypes(industry.value) : listEntityTypes(industry.value),
-      listFields({ scope: 'event', industry: industry.value, include_shared: true }),
+      // Name the custom fields of every industry (the original read only the filter's own, so an industry's
+      // field showed as its bare key on the "All industries" view).
+      Promise.all(
+        (industry.value === null ? [null, ...(industries.value as Industry[]).map((i) => i.key)] : [industry.value]).map((scope) =>
+          listFields({ scope: 'event', industry: scope, include_shared: true }),
+        ),
+      ).then((lists) => [...new Map(lists.flat().map((f) => [f.id, f])).values()]),
     ])
     if (mine !== token) return
     types.value = list
@@ -61,6 +67,7 @@ async function reload() {
 }
 onMounted(reload)
 watch([kind, industry], reload)
+watch(() => (industries.value as Industry[]).length, reload)
 
 const fieldName = (key: string) => {
   const f = eventFields.value.find((x) => x.key === key)
