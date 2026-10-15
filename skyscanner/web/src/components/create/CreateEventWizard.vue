@@ -12,7 +12,7 @@ import {
   reportError, toIsoDate, translate as t, useDirtyGuard, valueLabel, type ComboOption, type SelectOption,
 } from '@truth-platform/ui'
 import { useQueryClient } from '@tanstack/vue-query'
-import { computed, ref, watch } from 'vue'
+import { computed, ref, shallowRef, watch } from 'vue'
 import { createEvent, toMetadataAttributes, type EntityCreateRequest, type ExperimentResult } from '@/api/create'
 import { discardRefusedUploads, type Artifact } from '@/api/storage'
 import {
@@ -47,11 +47,11 @@ const step = ref(1)
 const saving = ref(false)
 const triedNext = ref(false)
 
-const eventTypes = ref<EventType[]>([])
-const entityTypes = ref<EntityType[]>([])
-const platformsOffered = ref<Platform[]>([])
-const eventFields = ref<FieldDefinition[]>([])
-const entityFields = ref<FieldDefinition[]>([])
+const eventTypes = shallowRef<EventType[]>([])
+const entityTypes = shallowRef<EntityType[]>([])
+const platformsOffered = shallowRef<Platform[]>([])
+const eventFields = shallowRef<FieldDefinition[]>([])
+const entityFields = shallowRef<FieldDefinition[]>([])
 
 const eventTypeKey = ref<string | null>(null)
 const industry = ref<string | null>(null)

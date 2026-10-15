@@ -1,0 +1,44 @@
+# Truth: the client and the in-memory stand-in behind it.
+#
+#     docker compose up --build          # then open http://<this machine>:8090
+#
+# The client is published on port 8090 of every interface and reaches the stand-in through nginx's /api.
+# To put the client in front of the real API instead, use docker-compose.frontend.yml beside this file.
+name: truth-mock
+
+services:
+  truth-api:
+    build:
+      context: ../..
+      dockerfile: truth/docker/Dockerfile.mock
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/industry?offset=0&limit=1')"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
+    networks:
+      - truth
+
+  web:
+    build:
+      context: ../..
+      dockerfile: truth/docker/Dockerfile.web
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_DEFAULT_CREATOR: ${TRUTH_DEFAULT_CREATOR:-}
+    restart: unless-stopped
+    environment:
+      TRUTH_API_URL: http://truth-api:8000/
+    ports:
+      - "${TRUTH_PORT:-8090}:80"
+    depends_on:
+      truth-api:
+        condition: service_healthy
+    networks:
+      - truth
+
+networks:
+  truth:
+    driver: bridge

@@ -1,0 +1,43 @@
+# Truth's web client: the built page served by nginx, which forwards /api on to the assumptions API.
+# Build context: the repository root.
+FROM node:22-alpine AS build
+
+WORKDIR /app
+
+# Every workspace must be declared before the lockfile can be installed against it.
+COPY package.json package-lock.json ./
+COPY libraries/ui/package.json ./libraries/ui/package.json
+COPY libraries/grid/package.json ./libraries/grid/package.json
+COPY skyscanner/web/package.json ./skyscanner/web/package.json
+COPY truth/web/package.json ./truth/web/package.json
+
+RUN npm ci
+
+COPY libraries/ui ./libraries/ui
+COPY libraries/grid ./libraries/grid
+COPY truth/web ./truth/web
+
+# The client asks its own origin for the API; where that goes is nginx's business, decided at start-up.
+ARG VITE_API_BASE_URL=/api
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+# Who the client creates things as (there is no user management). Empty means "unknown".
+ARG VITE_DEFAULT_CREATOR=
+ENV VITE_DEFAULT_CREATOR=$VITE_DEFAULT_CREATOR
+
+RUN npm run build --workspace @truth-platform/truth-web
+
+
+FROM nginx:1.27-alpine
+
+COPY truth/docker/nginx.conf.template /etc/nginx/templates/default.conf.template
+COPY --from=build /app/truth/web/dist /usr/share/nginx/html
+
+# Where the API is. The trailing slash matters: it strips the /api prefix (/api/assumption -> /assumption).
+ENV TRUTH_API_URL=http://truth-api:8000/
+# Without the filter envsubst would also replace nginx's own $host, $remote_addr...
+ENV NGINX_ENVSUBST_FILTER=TRUTH_API_URL
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

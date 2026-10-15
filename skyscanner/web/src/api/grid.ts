@@ -4,7 +4,7 @@
  */
 import type { FilterCondition, GeneratedGridConfiguration, GridRowsPage, SortSpecification } from '@truth-platform/grid'
 import { api, send } from './client'
-import { UPLOAD_TIMEOUT_MS, type ArchiveManifest } from './artifacts'
+import { UPLOAD_TIMEOUT_MS, type ArchiveManifest } from './storage'
 
 export type ParseState = 'all' | 'parsed' | 'not_parsed'
 

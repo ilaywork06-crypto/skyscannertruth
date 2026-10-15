@@ -16,6 +16,18 @@ export const RESULT_COLUMN = 'experiment_result'
 
 export const isBriefColumn = (c: GeneratedColumn): boolean => typeof c.cellRendererParams?.maxChars === 'number'
 
+/** `chars` average characters of the grid's font, in pixels (the brief column shows a full brief). */
+export function measureChars(chars: number): number {
+  if (typeof document === 'undefined') return chars * 8
+  const probe = document.createElement('span')
+  probe.style.cssText = `position:absolute;visibility:hidden;white-space:nowrap;font-size:13.5px;font-family:inherit;width:${chars}ch`
+  document.body.appendChild(probe)
+  const width = Math.ceil(probe.getBoundingClientRect().width)
+  probe.remove()
+  return width || chars * 8
+}
+const CELL_PADDING = 16 + 24
+
 export function prepareInventoryConfiguration(config: GeneratedGridConfiguration, eventTypes: EventType[], hebrew: boolean): GeneratedGridConfiguration {
   const typeBound = new Set(eventTypes.flatMap((t) => t.custom_fields))
   const columns = config.columns
@@ -24,7 +36,10 @@ export function prepareInventoryConfiguration(config: GeneratedGridConfiguration
       let col: GeneratedColumn = c.dynamic && typeBound.has(c.colId) ? { ...c, hide: true } : c
       if (AUTO_SIZED_COLUMNS.includes(col.colId)) col = { ...col, flex: null, minWidth: 56 }
       if (col.colId === RESULT_COLUMN) col = { ...col, cellRenderer: 'ResultCellRenderer' }
-      if (isBriefColumn(col)) col = { ...col, wrapText: true, autoHeight: true, resizable: false, flex: null }
+      if (isBriefColumn(col)) {
+        const width = measureChars(Number(col.cellRendererParams.maxChars)) + CELL_PADDING
+        col = { ...col, wrapText: true, autoHeight: true, resizable: false, flex: null, width, minWidth: width, maxWidth: width }
+      }
       return col
     })
   const localised = localiseColumns({ ...config, columns }, hebrew)
