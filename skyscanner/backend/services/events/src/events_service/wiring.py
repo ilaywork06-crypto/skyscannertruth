@@ -5,9 +5,6 @@ from functools import cached_property
 from typing import Annotated
 
 from fastapi import Depends, Request
-from sky_core.mongo import MongoProvider
-from sky_core.settings import get_auth_settings, get_service_settings
-from sky_grid.introspection import SchemaIntrospector
 
 from events_service.repositories.base import NOT_DELETED
 from events_service.repositories.declarations import (
@@ -40,6 +37,9 @@ from events_service.services.storage_client import StorageClient
 from events_service.services.subscriptions import SubscriptionService
 from events_service.services.templates import TemplateService
 from events_service.services.types import TypeService
+from sky_core.mongo import MongoProvider
+from sky_core.settings import get_auth_settings, get_service_settings
+from sky_grid.introspection import SchemaIntrospector
 
 
 class Container:

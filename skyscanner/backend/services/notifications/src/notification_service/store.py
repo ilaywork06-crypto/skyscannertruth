@@ -11,6 +11,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic import ValidationError as PydanticValidationError
+
 from sky_core.clock import utc_now
 from sky_core.log import get_logger
 from sky_core.models.subscription import SubscriptionTrigger

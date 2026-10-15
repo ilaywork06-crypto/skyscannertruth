@@ -9,13 +9,6 @@ from math import ceil
 from typing import Any, Protocol, TypeVar
 
 from pydantic_core import to_jsonable_python
-from sky_core.models.enums import FieldScope
-from sky_core.models.field import FieldResponse
-from sky_core.models.grid import FilterOption, GridConfiguration, GridRowsRequest, GridRowsResponse
-from sky_core.models.industry import DEFAULT_INDUSTRY_ICON
-from sky_grid.configuration import build_grid_configuration
-from sky_grid.introspection import SchemaIntrospector
-from sky_grid.query import resolve_path
 
 from events_service.constants import (
     ENTITY_BASE_COLUMNS,
@@ -31,6 +24,13 @@ from events_service.documents import EventDocument
 from events_service.repositories.declarations import IndustryRepository, PlatformRepository, TypeRepository
 from events_service.repositories.events import EventRepository
 from events_service.services.fields import FieldService
+from sky_core.models.enums import FieldScope
+from sky_core.models.field import FieldResponse
+from sky_core.models.grid import FilterOption, GridConfiguration, GridRowsRequest, GridRowsResponse
+from sky_core.models.industry import DEFAULT_INDUSTRY_ICON
+from sky_grid.configuration import build_grid_configuration
+from sky_grid.introspection import SchemaIntrospector
+from sky_grid.query import resolve_path
 
 SORT_KEY = "created_at"
 DISTINCT_LIMIT = 50

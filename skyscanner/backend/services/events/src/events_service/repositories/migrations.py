@@ -9,11 +9,6 @@ They bring databases written by older versions to the current shapes:
 
 from typing import Any
 
-from sky_core.clock import utc_now
-from sky_core.log import get_logger
-from sky_core.models.enums import OptionalEventField
-from sky_core.mongo import MongoProvider
-
 from events_service.constants import (
     EVENT_TYPE_KIND,
     EVENTS_COLLECTION,
@@ -22,6 +17,10 @@ from events_service.constants import (
     PLATFORMS_COLLECTION,
     TYPES_COLLECTION,
 )
+from sky_core.clock import utc_now
+from sky_core.log import get_logger
+from sky_core.models.enums import OptionalEventField
+from sky_core.mongo import MongoProvider
 
 LOGGER = get_logger(__name__)
 LEGACY_TYPE_FIELDS = [OptionalEventField.EVENT_DATE.value, OptionalEventField.NOTES.value]

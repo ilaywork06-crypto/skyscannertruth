@@ -121,7 +121,9 @@ def test_brief_generation() -> None:
     full = build_event_brief(["Experiment"], ["falcon"], "aviation", moment, 7, UploadSource.WATCHDOG)
     assert full == "Experiment · falcon · aviation · 27 Aug 2026 · via watchdog · #7"
     assert build_event_brief([], ["a", "b", "c", "d", "e"], "", moment, 1) == "Event · a + b + c +2 · 27 Aug 2026 · #1"
-    fitted = fit_event_brief(["A very long experiment type name"], ["p"], "aviation", moment, 7, 50, UploadSource.SCRIPT)
+    fitted = fit_event_brief(
+        ["A very long experiment type name"], ["p"], "aviation", moment, 7, 50, UploadSource.SCRIPT
+    )
     assert fitted == "A very long exper… · 27 Aug 2026 · via script · #7"
     assert len(fitted) <= 50
     assert fit_event_brief(["X"], [], "", moment, 123, 10) == "026 · #123"

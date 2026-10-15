@@ -3,15 +3,15 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Query, status
+
+from events_service.api.deps import EntityManager, EventCreator, EventEditor, EventRemover, Limit, Offset, Reader
+from events_service.wiring import Services
 from sky_core.models.common import OperationResult
 from sky_core.models.entity import EntityCreateRequest, EntityResponse, EntityUpdateRequest
 from sky_core.models.event import EventCreateRequest, EventResponse, EventSummaryResponse, EventUpdateRequest
 from sky_core.models.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE, Page
 from sky_core.models.query import SearchQuery
 from sky_core.models.revision import RevisionResponse
-
-from events_service.api.deps import EntityManager, EventCreator, EventEditor, EventRemover, Limit, Offset, Reader
-from events_service.wiring import Services
 
 ROUTER = APIRouter(tags=["events"])
 

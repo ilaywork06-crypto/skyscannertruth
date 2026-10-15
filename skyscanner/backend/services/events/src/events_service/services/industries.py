@@ -1,11 +1,10 @@
 """Industries, addressed by key. There is no delete and no rename: the key is referenced everywhere as is."""
 
-from sky_core.errors import ConflictError, NotFoundError
-from sky_core.models.industry import IndustryCreateRequest, IndustryResponse, IndustryUpdateRequest
-
 from events_service.documents import IndustryDocument
 from events_service.repositories.declarations import IndustryRepository
 from events_service.repositories.events import EventRepository
+from sky_core.errors import ConflictError, NotFoundError
+from sky_core.models.industry import IndustryCreateRequest, IndustryResponse, IndustryUpdateRequest
 
 
 class IndustryService:

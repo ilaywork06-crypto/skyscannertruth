@@ -5,6 +5,9 @@ and fields by id. Route order matters where paths overlap (`/types/platforms/{id
 """
 
 from fastapi import APIRouter, status
+
+from events_service.api.deps import IndustryManager, Limit, Offset, Reader, SchemaManager
+from events_service.wiring import Services
 from sky_core.models.common import OperationResult, RenameResult
 from sky_core.models.entity import EntityTypeCreateRequest, EntityTypeResponse, EntityTypeUpdateRequest
 from sky_core.models.enums import FieldScope
@@ -12,9 +15,6 @@ from sky_core.models.event import EventTypeCreateRequest, EventTypeResponse, Eve
 from sky_core.models.field import FieldCreateRequest, FieldResponse, FieldUpdateRequest
 from sky_core.models.industry import IndustryCreateRequest, IndustryResponse, IndustryUpdateRequest
 from sky_core.models.platform import PlatformCreateRequest, PlatformResponse, PlatformUpdateRequest
-
-from events_service.api.deps import IndustryManager, Limit, Offset, Reader, SchemaManager
-from events_service.wiring import Services
 
 ROUTER = APIRouter()
 CREATED = status.HTTP_201_CREATED

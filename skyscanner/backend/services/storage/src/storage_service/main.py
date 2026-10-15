@@ -8,11 +8,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+
 from sky_core.api import create_application
 from sky_core.log import configure_logging
 from sky_core.object_storage import ObjectStorageClient
 from sky_core.settings import StorageSettings, get_service_settings, get_storage_settings
-
 from storage_service.api import ROUTER, SERVICE_NAME
 
 DESCRIPTION = "Uploads, downloads and temporary links for every file the inventory refers to"

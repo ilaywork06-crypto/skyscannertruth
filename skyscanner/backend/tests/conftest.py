@@ -123,7 +123,7 @@ def _client(app: Any, base_url: str) -> httpx.AsyncClient:
 
 def bundle_storage(storage_client: httpx.AsyncClient) -> StorageClient:
     """The events service's storage client, wired to the in-process storage app."""
-    transport = storage_client._transport  # noqa: SLF001 - reuse the in-process transport
+    transport = storage_client._transport
     settings = ServiceSettings(STORAGE_SERVICE_URL="http://storage")
     return StorageClient(settings, AuthSettings(), transport=transport)
 

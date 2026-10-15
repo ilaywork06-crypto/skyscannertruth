@@ -8,6 +8,7 @@ works. The caller's user and roles are forwarded so the storage service applies 
 from dataclasses import dataclass
 
 import httpx
+
 from sky_core.models.common import UserContext
 from sky_core.settings import AuthSettings, ServiceSettings
 

@@ -2,8 +2,6 @@
 the event number counter)."""
 
 from pymongo import ASCENDING, DESCENDING, IndexModel, ReturnDocument
-from sky_core.models.enums import FieldScope
-from sky_core.mongo import MongoProvider
 
 from events_service.constants import (
     COUNTERS_COLLECTION,
@@ -14,6 +12,8 @@ from events_service.constants import (
 )
 from events_service.documents import OutboxDocument, RevisionDocument, SubscriptionDocument, TemplateDocument
 from events_service.repositories.base import Query, Repository
+from sky_core.models.enums import FieldScope
+from sky_core.mongo import MongoProvider
 
 
 class TemplateRepository(Repository[TemplateDocument]):

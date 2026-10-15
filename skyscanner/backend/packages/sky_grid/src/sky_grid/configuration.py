@@ -11,7 +11,6 @@ from sky_core.models.enums import FieldScope, SortDirection
 from sky_core.models.field import FieldResponse
 from sky_core.models.grid import ColumnDefinition, FilterOption, GridConfiguration
 from sky_core.models.query import SortSpecification
-
 from sky_grid.columns import BaseColumnSpec, column_from_field, column_from_spec
 
 VERSION_LENGTH = 16

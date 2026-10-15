@@ -1,12 +1,11 @@
 """Mail subscriptions. A subscription follows an industry, an event type or a single event; the notification
 service matches outbox rows against them. Nothing checks that the followed target exists."""
 
+from events_service.documents import SubscriptionDocument
+from events_service.repositories.records import SubscriptionRepository
 from sky_core.errors import ConflictError, NotFoundError, PermissionDeniedError, ValidationError
 from sky_core.models.common import UserContext
 from sky_core.models.subscription import SubscriptionCreateRequest, SubscriptionResponse, SubscriptionTrigger
-
-from events_service.documents import SubscriptionDocument
-from events_service.repositories.records import SubscriptionRepository
 
 
 class SubscriptionService:

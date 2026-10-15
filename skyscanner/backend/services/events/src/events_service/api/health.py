@@ -1,9 +1,9 @@
 """Liveness: always 200; `degraded` when the document store does not answer."""
 
 from fastapi import APIRouter, Request
-from sky_core.clock import utc_now
 
 from events_service.constants import SERVICE_NAME
+from sky_core.clock import utc_now
 
 ROUTER = APIRouter(tags=["health"])
 

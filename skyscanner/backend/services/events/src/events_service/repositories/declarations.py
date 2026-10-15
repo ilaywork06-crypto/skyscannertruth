@@ -5,7 +5,6 @@ Lists are ordered by `order`, then `name`.
 """
 
 from pymongo import ASCENDING, IndexModel
-from sky_core.models.enums import FieldScope
 
 from events_service.constants import (
     ENTITY_TYPE_KIND,
@@ -17,6 +16,7 @@ from events_service.constants import (
 )
 from events_service.documents import FieldDocument, IndustryDocument, PlatformDocument, TypeDocument
 from events_service.repositories.base import Query, Repository
+from sky_core.models.enums import FieldScope
 
 BY_ORDER = [("order", ASCENDING), ("name", ASCENDING)]
 

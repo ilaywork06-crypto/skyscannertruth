@@ -8,6 +8,10 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, FastAPI, Request
+
+from notification_service.dispatch import DispatchService
+from notification_service.mail import Mailer
+from notification_service.store import NotificationStore
 from sky_core.api import create_application, require_permission
 from sky_core.clock import utc_now
 from sky_core.log import configure_logging
@@ -15,10 +19,6 @@ from sky_core.models.common import OperationResult, UserContext
 from sky_core.models.enums import Permission
 from sky_core.mongo import MongoProvider
 from sky_core.settings import MailSettings, MongoSettings, get_mail_settings, get_mongo_settings, get_service_settings
-
-from notification_service.dispatch import DispatchService
-from notification_service.mail import Mailer
-from notification_service.store import NotificationStore
 
 SERVICE_NAME = "notification-service"
 DESCRIPTION = "Turns the pending notifications of the inventory into mails for the subscribers"

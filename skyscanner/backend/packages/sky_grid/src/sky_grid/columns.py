@@ -4,11 +4,11 @@ from collections.abc import Iterable, Mapping
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, JsonValue
+
 from sky_core.models.enums import FieldType
 from sky_core.models.field import FieldResponse
 from sky_core.models.grid import ColumnDefinition, FilterOption
 from sky_core.text import humanize_key
-
 from sky_grid.constants import (
     DEFAULT_FLEX,
     DEFAULT_MIN_WIDTH,

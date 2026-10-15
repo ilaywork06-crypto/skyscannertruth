@@ -3,13 +3,12 @@ change needs no cascade; a key change does."""
 
 from typing import Any
 
-from sky_core.errors import ConflictError, NotFoundError, ValidationError
-from sky_core.models.common import RenameResult, UserContext
-from sky_core.models.platform import PlatformCreateRequest, PlatformResponse, PlatformUpdateRequest
-
 from events_service.documents import PlatformDocument
 from events_service.repositories.declarations import PlatformRepository
 from events_service.services.renames import RenameService
+from sky_core.errors import ConflictError, NotFoundError, ValidationError
+from sky_core.models.common import RenameResult, UserContext
+from sky_core.models.platform import PlatformCreateRequest, PlatformResponse, PlatformUpdateRequest
 
 
 class PlatformService:

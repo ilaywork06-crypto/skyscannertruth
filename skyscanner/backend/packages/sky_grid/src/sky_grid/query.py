@@ -15,7 +15,6 @@ from typing import Any
 
 from sky_core.models.enums import SortDirection
 from sky_core.models.query import FilterCondition, FilterOperator, SortSpecification
-
 from sky_grid.constants import DYNAMIC_VALUE_ROOT
 
 Query = dict[str, Any]

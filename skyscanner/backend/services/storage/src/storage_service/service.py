@@ -38,7 +38,6 @@ from sky_core.object_storage import (
 )
 from sky_core.settings import StorageSettings
 from sky_core.text import file_suffix
-
 from storage_service.http_rules import archive_entry
 
 LOGGER = get_logger(__name__)

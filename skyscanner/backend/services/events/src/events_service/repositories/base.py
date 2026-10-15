@@ -12,6 +12,7 @@ from typing import Any, Generic, TypeVar
 from pydantic import BaseModel
 from pymongo import ASCENDING, IndexModel
 from pymongo.errors import DuplicateKeyError, OperationFailure
+
 from sky_core.clock import utc_now
 from sky_core.errors import ConflictError
 from sky_core.log import get_logger

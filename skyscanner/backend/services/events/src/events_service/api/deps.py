@@ -4,6 +4,7 @@
 from typing import Annotated
 
 from fastapi import Depends, Query
+
 from sky_core.api import CurrentUser, require_permission
 from sky_core.models.common import UserContext
 from sky_core.models.enums import Permission

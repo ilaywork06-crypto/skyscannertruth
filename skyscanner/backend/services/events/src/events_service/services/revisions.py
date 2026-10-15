@@ -1,13 +1,12 @@
 """Edit history: one revision per event edit and per entity edit, addition or removal. Never written for event
 creation, deletion or imports."""
 
-from sky_core.models.common import UserContext
-from sky_core.models.enums import RevisionTarget
-from sky_core.models.revision import FieldChange, RevisionResponse
-
 from events_service.documents import EntityDocument, EventDocument, RevisionDocument
 from events_service.domain.changes import build_changes, flatten_entity, flatten_event
 from events_service.repositories.records import RevisionRepository
+from sky_core.models.common import UserContext
+from sky_core.models.enums import RevisionTarget
+from sky_core.models.revision import FieldChange, RevisionResponse
 
 ENTITY_ATTACHED = "The entity was attached to the event"
 ENTITY_REMOVED = "The entity was removed from the event"

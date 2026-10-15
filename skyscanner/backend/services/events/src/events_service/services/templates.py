@@ -1,13 +1,12 @@
 """Saved views (templates): visible to their owner, and to everyone when shared; only the owner may change them."""
 
+from events_service.documents import TemplateDocument
+from events_service.repositories.records import TemplateRepository
 from sky_core.clock import utc_now
 from sky_core.errors import ConflictError, NotFoundError, PermissionDeniedError
 from sky_core.models.common import UserContext
 from sky_core.models.enums import FieldScope
 from sky_core.models.template import TemplateCreateRequest, TemplateResponse, TemplateUpdateRequest
-
-from events_service.documents import TemplateDocument
-from events_service.repositories.records import TemplateRepository
 
 
 class TemplateService:

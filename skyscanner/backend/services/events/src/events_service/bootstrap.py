@@ -3,9 +3,6 @@
 Fields declared while the service runs are indexed at the next start.
 """
 
-from sky_core.models.enums import FieldScope
-from sky_core.mongo import MongoProvider
-
 from events_service.repositories.declarations import (
     FieldRepository,
     IndustryRepository,
@@ -20,6 +17,8 @@ from events_service.repositories.records import (
     SubscriptionRepository,
     TemplateRepository,
 )
+from sky_core.models.enums import FieldScope
+from sky_core.mongo import MongoProvider
 
 
 async def prepare_database(provider: MongoProvider) -> None:

@@ -1,10 +1,9 @@
 """Notification rows for the notification service. The events service never sends mail itself: it writes one
 outbox row per change and the notification service matches rows against the subscriptions."""
 
-from sky_core.models.subscription import SubscriptionTrigger
-
 from events_service.documents import EventDocument, OutboxDocument
 from events_service.repositories.records import OutboxRepository
+from sky_core.models.subscription import SubscriptionTrigger
 
 
 class Publisher:

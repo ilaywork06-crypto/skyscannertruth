@@ -8,14 +8,6 @@ reaching `parsed` writes an `entity_parsed` notification.
 
 from typing import Any
 
-from sky_core.clock import ensure_utc, utc_now
-from sky_core.errors import NotFoundError, ValidationError
-from sky_core.ids import new_id
-from sky_core.models.common import UserContext
-from sky_core.models.entity import EntityCreateRequest, EntityResponse, EntityUpdateRequest
-from sky_core.models.enums import EntityStatus, FieldScope
-from sky_core.models.subscription import SubscriptionTrigger
-
 from events_service.documents import EntityDocument, EventDocument
 from events_service.domain.artifacts import require_unique_entity_files
 from events_service.domain.changes import entity_update_changes
@@ -27,6 +19,13 @@ from events_service.services.industries import IndustryService
 from events_service.services.outbox import Publisher
 from events_service.services.revisions import RevisionService
 from events_service.services.types import TypeService
+from sky_core.clock import ensure_utc, utc_now
+from sky_core.errors import NotFoundError, ValidationError
+from sky_core.ids import new_id
+from sky_core.models.common import UserContext
+from sky_core.models.entity import EntityCreateRequest, EntityResponse, EntityUpdateRequest
+from sky_core.models.enums import EntityStatus, FieldScope
+from sky_core.models.subscription import SubscriptionTrigger
 
 CLEARABLE_ENTITY_FIELDS = ("module", "code_version", "requested_at", "received_at")
 FILE_ROLES = ("raw_files", "parsed_files", "parsed_additional_files")

@@ -15,12 +15,6 @@ from collections.abc import AsyncIterator
 from typing import Any
 
 from pymongo import ASCENDING, DESCENDING, IndexModel
-from sky_core.clock import utc_now
-from sky_core.log import get_logger
-from sky_core.models.enums import EntityStatus, ParseState
-from sky_core.models.query import FilterCondition, SearchQuery
-from sky_grid.constants import DYNAMIC_VALUE_ROOT
-from sky_grid.query import build_mongo_filter, build_mongo_sort, build_text_search_filter, merge_filters
 
 from events_service.constants import (
     ENTITY_FILTER_PREFIX,
@@ -31,6 +25,12 @@ from events_service.constants import (
 )
 from events_service.documents import EntityDocument, EventDocument
 from events_service.repositories.base import ID, NOT_DELETED, Query, Repository, alive
+from sky_core.clock import utc_now
+from sky_core.log import get_logger
+from sky_core.models.enums import EntityStatus, ParseState
+from sky_core.models.query import FilterCondition, SearchQuery
+from sky_grid.constants import DYNAMIC_VALUE_ROOT
+from sky_grid.query import build_mongo_filter, build_mongo_sort, build_text_search_filter, merge_filters
 
 LOGGER = get_logger(__name__)
 DEFAULT_SORT: list[tuple[str, int]] = [("created_at", DESCENDING)]

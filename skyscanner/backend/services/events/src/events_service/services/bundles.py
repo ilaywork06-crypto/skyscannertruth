@@ -21,12 +21,6 @@ from typing import Any
 
 from pydantic import BaseModel
 from pydantic_core import to_jsonable_python
-from sky_core.clock import utc_now
-from sky_core.ids import new_id
-from sky_core.models.common import Artifact, UserContext
-from sky_core.models.grid import EventExportRequest
-from sky_core.models.storage import ArchiveDocument, ArchiveEntry, ArchiveRequest
-from sky_core.text import file_suffix
 
 from events_service.constants import ENTITY_TYPE_KIND, EVENT_ID_COUNTER, EVENT_TYPE_KIND
 from events_service.documents import EventDocument, FieldDocument, IndustryDocument, PlatformDocument, TypeDocument
@@ -39,6 +33,12 @@ from events_service.repositories.declarations import (
 from events_service.repositories.events import EventRepository
 from events_service.repositories.records import CounterRepository
 from events_service.services.storage_client import StorageClient, StoredFile
+from sky_core.clock import utc_now
+from sky_core.ids import new_id
+from sky_core.models.common import Artifact, UserContext
+from sky_core.models.grid import EventExportRequest
+from sky_core.models.storage import ArchiveDocument, ArchiveEntry, ArchiveRequest
+from sky_core.text import file_suffix
 
 BUNDLE_FORMAT = "skyscanner.inventory.bundle"
 BUNDLE_VERSION = 1

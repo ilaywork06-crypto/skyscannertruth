@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue
+
 from sky_core.clock import utc_now
 from sky_core.ids import new_id
 from sky_core.models.common import Artifact, MetadataAttribute, ObjectTypeReference

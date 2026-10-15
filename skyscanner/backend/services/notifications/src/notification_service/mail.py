@@ -3,9 +3,9 @@
 from email.message import EmailMessage
 
 import aiosmtplib
-from sky_core.settings import MailSettings
 
 from notification_service.store import Notification
+from sky_core.settings import MailSettings
 
 TRIGGER_LABELS = {
     "event_created": "A new event was uploaded",

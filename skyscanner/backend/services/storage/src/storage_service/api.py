@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, Header, Request, Response, UploadFile, status
 from fastapi.responses import StreamingResponse
+
 from sky_core.api import require_permission
 from sky_core.clock import utc_now
 from sky_core.models.common import Artifact, OperationResult, UserContext
@@ -22,7 +23,6 @@ from sky_core.models.storage import (
 )
 from sky_core.object_storage import DEFAULT_CONTENT_TYPE, content_disposition
 from sky_core.text import safe_path_segment
-
 from storage_service.http_rules import UnsatisfiableRange, preview_media_type, read_range
 from storage_service.service import ArtifactService, UploadPayload
 

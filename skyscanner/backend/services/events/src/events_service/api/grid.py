@@ -3,10 +3,10 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Query
-from sky_core.models.grid import GridConfiguration, GridRowsRequest, GridRowsResponse
 
 from events_service.api.deps import Reader
 from events_service.wiring import Services
+from sky_core.models.grid import GridConfiguration, GridRowsRequest, GridRowsResponse
 
 ROUTER = APIRouter(prefix="/grid", tags=["grid"])
 

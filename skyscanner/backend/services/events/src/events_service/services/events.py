@@ -12,6 +12,20 @@ from datetime import datetime
 from math import ceil
 from typing import Any
 
+from events_service.constants import EVENT_ID_COUNTER
+from events_service.documents import EventDocument, TypeDocument
+from events_service.domain.artifacts import require_unique_artifacts
+from events_service.domain.brief import fit_event_brief
+from events_service.domain.changes import event_update_changes
+from events_service.domain.values import ValueRequest
+from events_service.repositories.events import EventRepository
+from events_service.repositories.records import CounterRepository
+from events_service.services.entities import EntityService
+from events_service.services.fields import FieldService
+from events_service.services.outbox import Publisher
+from events_service.services.platforms import PlatformService
+from events_service.services.revisions import RevisionService
+from events_service.services.types import TypeService
 from sky_core.clock import ensure_utc, utc_now
 from sky_core.errors import NotFoundError, ValidationError
 from sky_core.ids import new_id
@@ -27,21 +41,6 @@ from sky_core.models.event import (
 from sky_core.models.pagination import Page
 from sky_core.models.query import SearchQuery
 from sky_core.models.subscription import SubscriptionTrigger
-
-from events_service.constants import EVENT_ID_COUNTER
-from events_service.documents import EventDocument, TypeDocument
-from events_service.domain.artifacts import require_unique_artifacts
-from events_service.domain.brief import fit_event_brief
-from events_service.domain.changes import event_update_changes
-from events_service.domain.values import ValueRequest
-from events_service.repositories.events import EventRepository
-from events_service.repositories.records import CounterRepository
-from events_service.services.entities import EntityService
-from events_service.services.fields import FieldService
-from events_service.services.outbox import Publisher
-from events_service.services.platforms import PlatformService
-from events_service.services.revisions import RevisionService
-from events_service.services.types import TypeService
 
 CLEARABLE_EVENT_FIELDS = ("experiment_result", "event_date")
 BRIEF_REQUIRED = f"An event needs a brief of at most {BRIEF_MAX_LENGTH} characters"

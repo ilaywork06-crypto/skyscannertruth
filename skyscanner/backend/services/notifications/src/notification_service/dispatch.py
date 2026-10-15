@@ -9,10 +9,10 @@ import asyncio
 import contextlib
 
 import aiosmtplib
-from sky_core.log import get_logger
 
 from notification_service.mail import Mailer
 from notification_service.store import Notification, NotificationStore
+from sky_core.log import get_logger
 
 LOGGER = get_logger(__name__)
 BATCH_SIZE = 50

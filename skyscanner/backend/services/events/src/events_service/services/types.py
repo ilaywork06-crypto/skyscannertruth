@@ -6,15 +6,14 @@ first, then the declaration is written, then a label change is copied into the e
 
 from typing import Any
 
-from sky_core.errors import ConflictError, NotFoundError, ValidationError
-from sky_core.models.common import RenameResult, UserContext
-from sky_core.models.entity import EntityTypeCreateRequest, EntityTypeResponse, EntityTypeUpdateRequest
-from sky_core.models.event import EventTypeCreateRequest, EventTypeResponse, EventTypeUpdateRequest
-
 from events_service.constants import ENTITY_TYPE_KIND, EVENT_TYPE_KIND
 from events_service.documents import TypeDocument
 from events_service.repositories.declarations import TypeRepository
 from events_service.services.renames import RenameService, Tally
+from sky_core.errors import ConflictError, NotFoundError, ValidationError
+from sky_core.models.common import RenameResult, UserContext
+from sky_core.models.entity import EntityTypeCreateRequest, EntityTypeResponse, EntityTypeUpdateRequest
+from sky_core.models.event import EventTypeCreateRequest, EventTypeResponse, EventTypeUpdateRequest
 
 
 class TypeService:

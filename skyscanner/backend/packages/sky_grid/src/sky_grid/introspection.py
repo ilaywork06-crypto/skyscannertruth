@@ -10,7 +10,6 @@ from typing import Any
 from sky_core.models.enums import FieldScope, FieldType
 from sky_core.models.field import FieldMetadata, FieldResponse
 from sky_core.mongo import Collection
-
 from sky_grid.constants import DYNAMIC_VALUE_ROOT
 
 DEFAULT_SCAN_LIMIT = 500

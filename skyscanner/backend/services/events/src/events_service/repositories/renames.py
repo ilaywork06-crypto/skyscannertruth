@@ -7,8 +7,6 @@ not skip soft-deleted documents: a restored document must not come back with a s
 from collections.abc import Callable
 from typing import Any
 
-from sky_core.mongo import MongoProvider
-
 from events_service.constants import (
     EVENTS_COLLECTION,
     FIELDS_COLLECTION,
@@ -17,6 +15,7 @@ from events_service.constants import (
     TYPES_COLLECTION,
 )
 from events_service.repositories.base import ID, Query
+from sky_core.mongo import MongoProvider
 
 Rewrite = Callable[[dict[str, Any]], dict[str, Any]]
 

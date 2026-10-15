@@ -1,13 +1,13 @@
 """Per-user records: saved views (templates) and mail subscriptions. Listing needs an identity only."""
 
 from fastapi import APIRouter, status
+
+from events_service.api.deps import CurrentUser, Limit, Offset, SubscriptionManager, TemplateManager
+from events_service.wiring import Services
 from sky_core.models.common import OperationResult
 from sky_core.models.enums import FieldScope
 from sky_core.models.subscription import SubscriptionCreateRequest, SubscriptionResponse
 from sky_core.models.template import TemplateCreateRequest, TemplateResponse, TemplateUpdateRequest
-
-from events_service.api.deps import CurrentUser, Limit, Offset, SubscriptionManager, TemplateManager
-from events_service.wiring import Services
 
 ROUTER = APIRouter()
 

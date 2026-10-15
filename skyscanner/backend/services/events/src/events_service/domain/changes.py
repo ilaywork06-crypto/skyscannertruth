@@ -9,10 +9,10 @@ from collections.abc import Mapping
 from typing import Any
 
 from pydantic_core import to_jsonable_python
-from sky_core.models.revision import FieldChange
-from sky_core.text import humanize_key
 
 from events_service.documents import EntityDocument, EventDocument
+from sky_core.models.revision import FieldChange
+from sky_core.text import humanize_key
 
 DYNAMIC_PREFIX = "data."
 TRACKED_EVENT_KEYS = (

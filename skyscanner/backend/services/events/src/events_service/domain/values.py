@@ -16,13 +16,13 @@ from datetime import datetime
 from typing import Any
 
 from pydantic import ValidationError as PydanticValidationError
+
+from events_service.documents import FieldDocument
 from sky_core.clock import ensure_utc
 from sky_core.errors import ValidationError
 from sky_core.models.common import Coordinate, MetadataAttribute
 from sky_core.models.enums import DependencyOperator, FieldScope, FieldType
 from sky_core.models.field import FieldDependency
-
-from events_service.documents import FieldDocument
 
 TRUE_VALUES = frozenset({"true", "1", "yes", "on"})
 FALSE_VALUES = frozenset({"false", "0", "no", "off"})

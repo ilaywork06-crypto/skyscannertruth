@@ -5,8 +5,6 @@ A rename returns a tally `{collection: count}`; with `apply=False` it is a dry r
 "saving rewrites N events, M templates" before the key is changed).
 """
 
-from sky_core.models.enums import FieldScope
-
 from events_service.constants import (
     EVENTS_COLLECTION,
     FIELDS_COLLECTION,
@@ -16,6 +14,7 @@ from events_service.constants import (
 )
 from events_service.domain import renames as rules
 from events_service.repositories.renames import RenameStore
+from sky_core.models.enums import FieldScope
 
 Tally = dict[str, int]
 EVENT_TYPE_COLUMNS = frozenset({"event_type_keys", "event_type_names"})
