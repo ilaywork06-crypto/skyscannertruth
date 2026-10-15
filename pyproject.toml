@@ -1,0 +1,82 @@
+[project]
+name = "skyscanner-workspace"
+version = "0.2.0"
+description = "Skyscanner backend workspace: shared packages and the three services"
+requires-python = ">=3.11"
+dependencies = [
+    "sky-core",
+    "sky-grid",
+    "events-service",
+    "storage-service",
+    "notification-service",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["skyscanner/backend/packages/*", "skyscanner/backend/services/*"]
+
+[tool.uv.sources]
+sky-core = { workspace = true }
+sky-grid = { workspace = true }
+events-service = { workspace = true }
+storage-service = { workspace = true }
+notification-service = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "mypy>=1.13",
+    "ruff>=0.8",
+    "moto[server]>=5.0",
+    "aiosmtpd>=1.4",
+    "httpx>=0.27",
+    "asgi-lifespan>=2.1",
+    "types-aiobotocore[s3]>=2.15",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+extend-exclude = ["node_modules", "libraries", "truth", "skyscanner/web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC", "PL", "N"]
+ignore = ["PLR0917", "PLR0913", "PLR2004", "PLR0911", "PLR0912", "RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.lint.per-file-ignores]
+"skyscanner/backend/tests/**" = ["PLR2004", "S101", "PLC0415"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_configs = true
+show_error_codes = true
+plugins = ["pydantic.mypy"]
+files = [
+    "skyscanner/backend/packages/sky_core/src",
+    "skyscanner/backend/packages/sky_grid/src",
+    "skyscanner/backend/services/events/src",
+    "skyscanner/backend/services/storage/src",
+    "skyscanner/backend/services/notifications/src",
+]
+mypy_path = [
+    "skyscanner/backend/packages/sky_core/src",
+    "skyscanner/backend/packages/sky_grid/src",
+    "skyscanner/backend/services/events/src",
+    "skyscanner/backend/services/storage/src",
+    "skyscanner/backend/services/notifications/src",
+]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["motor.*", "aioboto3.*", "aiosmtplib.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["skyscanner/backend/tests"]

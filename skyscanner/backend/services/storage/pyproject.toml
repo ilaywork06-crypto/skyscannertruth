@@ -1,0 +1,16 @@
+[project]
+name = "storage-service"
+version = "0.2.0"
+description = "Uploads, downloads and temporary links for every stored file"
+requires-python = ">=3.11"
+dependencies = ["sky-core", "fastapi>=0.115", "uvicorn[standard]>=0.32", "python-multipart>=0.0.12"]
+
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/storage_service"]
+
+[tool.uv.sources]
+sky-core = { workspace = true }

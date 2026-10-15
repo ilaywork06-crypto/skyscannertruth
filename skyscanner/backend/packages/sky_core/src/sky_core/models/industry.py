@@ -1,0 +1,46 @@
+"""Industry request/response models. Industries are addressed by key and cannot be renamed."""
+
+from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
+
+DEFAULT_INDUSTRY_ICON: str = "mdi-domain"
+
+
+class IndustryCreateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    key: str = Field(description="Machine key of the industry, used to scope fields and to filter events")
+    name: str = Field(description="Label shown for the industry")
+    name_he: str = Field(default="", description="Label shown for the industry on a Hebrew page")
+    description: str = Field(default="", description="Explanation of what the industry covers")
+    icon: str = Field(default=DEFAULT_INDUSTRY_ICON, description="Material Design icon the industry is drawn with")
+    color: str = Field(default="industryAmber", description="Legacy colour token, stored but no longer shown")
+    modules: list[str] = Field(
+        default_factory=list, description="The modules an entity of this industry may name, empty to accept any text"
+    )
+
+
+class IndustryUpdateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    name: str | None = Field(default=None, description="New label of the industry")
+    name_he: str | None = Field(default=None, description="New Hebrew label of the industry")
+    description: str | None = Field(default=None, description="New explanation of what the industry covers")
+    icon: str | None = Field(default=None, description="New Material Design icon of the industry")
+    color: str | None = Field(default=None, description="Legacy colour token, stored but no longer shown")
+    modules: list[str] | None = Field(default=None, description="New vocabulary of the entity modules")
+
+
+class IndustryResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+    id: str = Field(description="Identifier of the industry")
+    key: str = Field(description="Machine key of the industry")
+    name: str = Field(description="Label shown for the industry")
+    name_he: str = Field(default="", description="Label shown for the industry on a Hebrew page")
+    description: str = Field(default="", description="Explanation of what the industry covers")
+    icon: str = Field(default=DEFAULT_INDUSTRY_ICON, description="Material Design icon the industry is drawn with")
+    color: str = Field(default="industryAmber", description="Legacy colour token, stored but no longer shown")
+    modules: list[str] = Field(
+        default_factory=list, description="The modules an entity of this industry may name, empty to accept any text"
+    )
+    event_count: int = Field(default=0, ge=0, description="Amount of events currently linked to the industry")
+    created_at: datetime = Field(description="UTC moment the industry was registered")

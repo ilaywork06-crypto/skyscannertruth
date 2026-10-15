@@ -3,8 +3,10 @@
  * Seeded from the original client's dictionary so the Hebrew wording carries over; extend freely.
  */
 import type { Translations } from '@truth-platform/ui'
+import { INVENTORY } from './inventory'
+import { SETTINGS } from './settings'
 
-export const DICTIONARY: Translations = {
+const BASE: Translations = {
   "en": {
     "app.home": "Skyscanner - the inventory",
     "app.more": "More",
@@ -530,3 +532,10 @@ export const DICTIONARY: Translations = {
     "app.tagline": "מלאי אירועים"
   }
 }
+
+const merge = (...parts: Translations[]): Translations => ({
+  en: Object.assign({}, ...parts.map((p) => p.en)),
+  he: Object.assign({}, ...parts.map((p) => p.he)),
+})
+
+export const DICTIONARY: Translations = merge(BASE, INVENTORY, SETTINGS)
