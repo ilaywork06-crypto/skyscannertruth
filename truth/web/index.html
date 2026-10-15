@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0A1330" />
+    <title>Truth</title>
+    <!-- Paint the stored theme and language before the app loads (no flash of the wrong colours). -->
+    <script>try{var p="truth.",s=localStorage,t=s.getItem(p+'theme')||'system',d=t==='dark'||t==='truthDark'||(t==='system'&&matchMedia('(prefers-color-scheme: dark)').matches),c=s.getItem(p+'paint-'+(d?'dark':'light'));if(d)document.documentElement.classList.add('dark');if(c){var e=document.createElement('style');e.id='theme-tokens';e.textContent='html:root{'+c+'}';document.head.appendChild(e)}if((s.getItem(p+'lang')||s.getItem('ui.language'))==='he'){document.documentElement.lang='he';document.documentElement.dir='rtl'}}catch(e){}</script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

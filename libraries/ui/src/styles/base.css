@@ -1,0 +1,61 @@
+/*
+ * The base layer both clients share. Imported once by each app's own stylesheet, which runs it through
+ * Tailwind with the preset in ../../tailwind-preset.cjs.
+ */
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/heebo';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Indigo, light - what the page paints before the preferences script runs. */
+:root {
+  --background: 249 250 251; --foreground: 17 24 39; --card: 255 255 255; --card-foreground: 17 24 39;
+  --popover: 255 255 255; --muted: 243 244 246; --muted-foreground: 100 108 125; --subtle: 233 235 240;
+  --border: 226 228 233; --input: 214 217 225; --sidebar: 246 247 249; --ring: 113 109 245; --ring-alpha: 0.45;
+  --primary: 79 70 229; --primary-foreground: 252 252 252; --primary-soft: 237 237 254; --primary-soft-foreground: 67 56 202;
+  --success: 22 163 74; --success-soft: 230 247 236; --warning: 217 145 30; --warning-soft: 254 246 222; --warning-foreground: 146 90 20;
+  --danger: 220 38 38; --danger-soft: 254 237 236; --info: 37 133 230; --info-soft: 233 242 253;
+  --chart-ready: 22 163 74; --chart-assembled: 147 85 230; --bar-opacity: 1; --shadow-color: 230 20% 20%;
+}
+
+@layer base {
+  * { border-color: rgb(var(--border)); }
+  html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+  body {
+    background: rgb(var(--background));
+    color: rgb(var(--foreground));
+    font-family: theme('fontFamily.sans');
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  ::selection { background: rgb(var(--primary-soft)); color: rgb(var(--primary-soft-foreground)); }
+  :focus-visible { outline: 2px solid rgb(var(--ring) / var(--ring-alpha)); outline-offset: 2px; }
+  input[type='number']::-webkit-inner-spin-button { opacity: 0.4; }
+  * { scrollbar-width: thin; scrollbar-color: rgb(var(--input)) transparent; }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-thumb { background: rgb(var(--input)); border-radius: 999px; border: 2px solid transparent; background-clip: padding-box; }
+}
+
+@layer components {
+  .mono { font-family: theme('fontFamily.mono'); font-feature-settings: normal; letter-spacing: -0.01em; }
+  .card-surface {
+    background: rgb(var(--card));
+    border: 1px solid rgb(var(--border));
+    border-radius: 16px;
+    box-shadow: 0 1px 2px hsl(var(--shadow-color) / 0.05), 0 1px 3px hsl(var(--shadow-color) / 0.06);
+  }
+  /* A value takes its direction from its own first strong letter, never from the page. */
+  .bidi-value { unicode-bidi: plaintext; }
+  .grid-bg {
+    background-image: linear-gradient(to right, rgb(var(--border)) 1px, transparent 1px),
+      linear-gradient(to bottom, rgb(var(--border)) 1px, transparent 1px);
+    background-size: 10% 10%;
+  }
+}
+
+@layer components {
+  .ui-mark { background: rgb(var(--warning) / 0.35); color: inherit; border-radius: 3px; padding-inline: 1px; }
+  .ui-link { color: rgb(var(--primary)); text-decoration: underline; text-underline-offset: 2px; }
+  .ui-link:hover { text-decoration-thickness: 2px; }
+}
