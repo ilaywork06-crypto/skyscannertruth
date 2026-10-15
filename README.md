@@ -12,6 +12,11 @@ mock-api/      in-memory stand-in for the API (python, no dependencies)
 docker/        compose files: client + stand-in, or client in front of your API
 ```
 
+| | |
+| --- | --- |
+| ![Register](docs/screenshots/register.png) | ![Register, dark, filtering](docs/screenshots/register-dark-filter.png) |
+| ![Hebrew](docs/screenshots/register-hebrew.png) | ![Assumption](docs/screenshots/assumption.png) |
+
 ## Running it
 
 ```bash
