@@ -47,7 +47,7 @@ const canApply = computed(() => {
   if (!needsValue.value) return true
   if (kind.value === 'options') return picked.value.length > 0
   if (kind.value === 'boolean') return yes.value !== null
-  return text.value.trim() !== ''
+  return String(text.value ?? '').trim() !== ''
 })
 
 function resetValue() {
@@ -78,7 +78,7 @@ function apply() {
     else if (kind.value === 'boolean') value = yes.value === 'true'
     else if (kind.value === 'number') value = Number(text.value)
     else if (kind.value === 'date') value = `${text.value} 00:00:00`
-    else value = text.value.trim()
+    else value = String(text.value).trim()
   }
   const key = scope.value === 'entity' ? `objects.${c.field}` : c.colId
   const label = scope.value === 'entity' ? `${t('fieldFilter.entity')} · ${c.headerName}` : c.headerName

@@ -59,6 +59,7 @@ const total = computed(() => files.value.reduce((s, f) => s + f.size, 0))
 const written = computed(() => rows.value.reduce((s, r) => s + r.written, 0))
 const percent = computed(() => (total.value ? Math.min(100, (written.value / total.value) * 100) : 0))
 const clashing = computed(() => collidingNames(event.value?.additional_files ?? [], files.value, null))
+const resumableNames = computed(() => files.value.filter((_, i) => rows.value[i]?.resumable).map((f) => f.name))
 const busy = computed(() => phase.value !== 'pick')
 const canStart = computed(() => !!event.value && files.value.length > 0 && reason.value.trim().length > 0 && clashing.value.length === 0)
 
@@ -245,6 +246,9 @@ const statusLabel = (r: Row) => (r.status === 'queued' && r.resumable ? t('uploa
       </div>
 
       <Dropzone v-if="phase === 'pick'" v-model:files="files" :label="t('edit.addFiles')" />
+      <p v-if="phase === 'pick' && resumableNames.length" class="flex items-center gap-1.5 text-xs text-info" dir="auto">
+        <History class="size-3.5 shrink-0" /> {{ t('uploads.willContinue', { names: joinIsolated(resumableNames) }) }}
+      </p>
       <p v-if="clashing.length" class="text-xs text-danger" dir="auto">{{ t('uploads.alreadyAttached', { names: joinIsolated(clashing) }) }}</p>
 
       <!-- Per-file progress -->
