@@ -13,6 +13,11 @@ const props = withDefaults(
     class?: string
     /** Refuse closing by Esc / outside click (e.g. a form with unsaved changes asks first). */
     persistent?: boolean
+    /**
+     * Stack above other open dialogs. A dialog whose host is mounted early (the app-wide confirm) otherwise
+     * lands *under* a dialog opened later, because Vue's teleport anchors keep mount order in <body>.
+     */
+    raised?: boolean
   }>(),
   { size: 'md' },
 )
@@ -31,12 +36,13 @@ function block(e: Event) {
 <template>
   <DialogRoot v-model:open="open">
     <DialogPortal>
-      <DialogOverlay class="fixed inset-0 z-50 animate-fade bg-black/40 backdrop-blur-[2px]" />
+      <DialogOverlay :class="cn('fixed inset-0 animate-fade bg-black/40 backdrop-blur-[2px]', raised ? 'z-[80]' : 'z-50')" />
       <DialogContent
         :dir="direction"
         :class="cn(
-          'fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col',
+          'fixed left-1/2 top-1/2 flex max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col',
           'animate-in rounded-2xl border border-border bg-popover shadow-pop outline-none',
+          raised ? 'z-[80]' : 'z-50',
           widths[size],
           props.class,
         )"

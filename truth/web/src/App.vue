@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { Building2, Layers, LayoutGrid, TableProperties } from 'lucide-vue-next'
-import { AppShell, ConfirmHost, Toaster, TooltipProvider, reportError, translate as t, usePreferences, type NavSection } from '@truth-platform/ui'
+import { AppShell, Toaster, TooltipProvider, reportError, translate as t, usePreferences, type NavSection } from '@truth-platform/ui'
 import { computed, onMounted } from 'vue'
 import { RouterView, useRoute } from 'vue-router'
+import ConfirmLayer from './components/ConfirmLayer.vue'
 import { useRegister } from './composables/register'
 
 const route = useRoute()
@@ -37,7 +38,7 @@ onMounted(() => register.load().catch(reportError))
     <AppShell brand="TRUTH" :tagline="t('app.tagline')" :logo="Layers" :sections="sections" :wide="route.meta.wide === true">
       <RouterView />
     </AppShell>
-    <ConfirmHost />
+    <ConfirmLayer />
     <Toaster />
   </TooltipProvider>
 </template>
