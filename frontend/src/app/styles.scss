@@ -1,0 +1,157 @@
+/*
+ * Global styles: typography, page layout primitives, and the few overrides Vuetify needs to look like Truth.
+ */
+
+:root {
+  --truth-font: 'Inter Variable', 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --truth-radius: 14px;
+  --truth-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px -12px rgb(0 0 0 / 0.25);
+  --truth-gradient: linear-gradient(135deg, rgb(var(--v-theme-primary)) 0%, rgb(var(--v-theme-secondary)) 100%);
+}
+
+html {
+  overflow-y: auto;
+}
+
+body,
+.v-application,
+.v-overlay-container {
+  font-family: var(--truth-font);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+}
+
+.v-application .text-h1,
+.v-application .text-h2,
+.v-application .text-h3,
+.v-application .text-h4,
+.v-application .text-h5,
+.v-application .text-h6,
+.v-application .text-body-1,
+.v-application .text-body-2,
+.v-application .text-subtitle-1,
+.v-application .text-subtitle-2,
+.v-application .text-caption,
+.v-application .text-overline,
+.v-application .text-button {
+  font-family: var(--truth-font) !important;
+}
+
+.app-main {
+  background: rgb(var(--v-theme-background));
+  min-block-size: 100vh;
+}
+
+/* ---------- page layout ---------- */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-inline-size: 1600px;
+  margin-inline: auto;
+  padding: 2rem 2.5rem 3rem;
+}
+
+.page--narrow {
+  max-inline-size: 1100px;
+}
+
+@media (max-width: 960px) {
+  .page {
+    padding: 1.25rem 1rem 2rem;
+  }
+}
+
+/* A bordered surface - the building block of every card, panel and table frame. */
+.surface {
+  background: rgb(var(--v-theme-surface));
+  border: 1px solid rgb(var(--v-theme-border));
+  border-radius: var(--truth-radius);
+}
+
+.text-muted {
+  color: rgb(var(--v-theme-muted)) !important;
+}
+
+/* Every value reads in its own direction, whatever the page's direction. */
+.bidi {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+.v-list-item-title,
+.v-chip__content {
+  unicode-bidi: plaintext;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Vuetify polish ---------- */
+
+.v-btn--variant-flat.bg-primary {
+  background-image: var(--truth-gradient) !important;
+  box-shadow: 0 6px 16px -8px rgb(var(--v-theme-primary));
+}
+
+.v-field--variant-outlined .v-field__outline {
+  --v-field-border-opacity: 0.16;
+}
+
+.v-overlay__content > .v-card,
+.v-menu > .v-overlay__content > .v-list,
+.v-menu > .v-overlay__content > .v-card {
+  border: 1px solid rgb(var(--v-theme-border));
+  box-shadow: 0 24px 48px -16px rgb(0 0 0 / 0.45) !important;
+}
+
+.v-dialog > .v-overlay__content > .v-card {
+  border-radius: 20px !important;
+}
+
+.v-tooltip > .v-overlay__content {
+  font-size: 0.75rem;
+  border-radius: 8px;
+}
+
+/* ---------- transitions ---------- */
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.page-leave-to {
+  opacity: 0;
+}
+
+/* ---------- scrollbars ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--v-theme-border-strong)) transparent;
+}
+
+::-webkit-scrollbar {
+  inline-size: 10px;
+  block-size: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-color: rgb(var(--v-theme-border-strong));
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

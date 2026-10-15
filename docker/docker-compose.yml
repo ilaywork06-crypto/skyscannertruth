@@ -1,0 +1,28 @@
+# The client in front of the in-memory stand-in API: `docker compose up --build`, then http://localhost:8090
+name: truth-mock
+
+services:
+  truth-api:
+    build: ../mock-api
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/industry?offset=0&limit=1')"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
+
+  web:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_BASE_URL: /api
+        VITE_DEFAULT_CREATOR: ${TRUTH_DEFAULT_CREATOR:-}
+    restart: unless-stopped
+    environment:
+      TRUTH_API_URL: http://truth-api:8000/
+    ports:
+      - "${TRUTH_PORT:-8090}:80"
+    depends_on:
+      truth-api:
+        condition: service_healthy
